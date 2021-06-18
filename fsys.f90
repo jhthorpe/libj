@@ -6,11 +6,33 @@
 !
 !	-  
 !--------------------------------------------------------
+! To use
+!	1. Initialize or recover the filesystem. 
+!	   The data type needs to be stored by the 
+!          calling program.
+!	2. add any files that you want. File id's will
+!	   need to be stored by the calling program,
+!	   or recovered with fsys_getit() 
+!	3. open then to read and write
+!	4. close files
+!	5. Optionally, save the filesystem in order to 
+!	   recover it in a seperate program
+!
+!	IMPORTANT NOTES
+!	  - all integers must be kind=8
+!	  - fsyinfo file saves the filesystem and should
+!	    note be overwritten
+!--------------------------------------------------------
 ! Subroutines and functions
 ! fsys_init(sys)	  : initializes the filesystem
 ! fsys_print(sys)	  : prints info about filesystem
 ! fsys_add(sys,name,  	  : adds a file to the system
 !          rbyte,fid)         and returns file id
+! fsys_getid(sys,name)	  : returns the file id of a 
+!	                    file with some name
+! fsys_save(sys)	  : saves the datastruct to 
+!	                    a special file to be recovered
+! fsys_recover(sys)	  : recovers a saved filesystem
 ! fsys_close(sys,fid)     : closes a file
 ! fsys_open(sys,fidm,rw)  : opens a file for read/write
 ! fsys_close_all(sys,fid) : closes all files
@@ -22,6 +44,7 @@
 !             N,BUF)          file starting at rec sr
 ! fsys_iread(sys,fid,sr, : reads a int*8 buffer from
 !             N,BUF)          file starting at rec sr
+!
 
 module fsys
   implicit none
@@ -99,6 +122,7 @@ subroutine fsys_print(sys)
   write(*,'(1x,A,I4)') "Free files             :",sys%file_nfree
 
   do i=1,sys%file_num
+    write(*,*)
     write(*,'(1x,A,I4)')  "File number        : ",i
     write(*,'(1x,A,A8)')  "File name          : ",sys%file_name(i)
     write(*,'(1x,A,I4)')  "File unit          : ",sys%file_unit(i) 
@@ -156,6 +180,113 @@ subroutine fsys_add(sys,fname,frlen,fid)
   
 end subroutine fsys_add
 
+!--------------------------------------------------------
+! fsys_getid
+!	- returns the internal file ID of a file
+!	  with some given name
+!--------------------------------------------------------
+! sys		: jsys_type
+! fname		: char(len8), file name
+
+integer(kind=8) function fsys_getid(sys,fname)
+  implicit none
+  type(jsys_type), intent(in)  :: sys
+  character(len=8), intent(in) :: fname
+
+  integer(kind=8) :: i
+
+  i = 1
+  do while (.true.) 
+    if (fname .eq. sys%file_name(i)) exit
+    if (i .gt. sys%file_num) exit
+    i = i + 1
+  end do 
+
+  if (i .gt. sys%file_num) then
+    write(*,'(A)') "fsys ERROR ERROR ERROR"
+    write(*,'(A,A8,A)') "Could not locate file ",fname," in system"
+    STOP 1
+  end if
+
+  fsys_getid = i
+
+end function fsys_getid
+
+!--------------------------------------------------------
+! fsys_save
+!	- saves the filesystem to the file fsysinfo
+!--------------------------------------------------------
+! sys		: jsys_type, filesystem
+subroutine fsys_save(sys)
+  implicit none
+  type(jsys_type), intent(in) :: sys
+  integer(kind=8) :: nunit
+  logical :: found
+
+  nunit = 10
+  found = .false.
+  do while (.true.)
+    inquire(unit=nunit,opened=found)
+    if (.not. found) exit 
+    if (nunit .gt. 1000) exit 
+    nunit = nunit + 1
+  end do
+  
+  if (.not. found) then
+    open(file='fsysinfo',unit=nunit,status='replace',&
+         form='unformatted')
+    write(nunit) sys
+    close(nunit) 
+  else
+    write(*,'(A)') "fsys ERROR ERROR ERROR"
+    write(*,'(A)') "Could not find an unsed unit to save"
+    STOP 1
+  end if
+
+end subroutine fsys_save
+
+!--------------------------------------------------------
+! fsys_recover
+!	- recovers the filestystem from the sys file
+!--------------------------------------------------------
+! sys		: jsys_type, filesystem
+subroutine fsys_recover(sys)
+  implicit none
+  type(jsys_type), intent(inout) :: sys
+  integer(kind=8) :: nunit
+  logical :: found
+
+  !check if file exists
+  inquire(file='fsysinfo',exist=found)
+  if (.not. found) then
+    write(*,'(A)') "fsys ERROR ERROR ERROR"
+    write(*,'(A)') "Could not find the fsysinfo file to recover"
+    STOP 1
+  end if
+  
+  !if so, find a free unit to read with
+  nunit = 10
+  found = .false.
+  do while (.true.)
+    inquire(unit=nunit,opened=found)
+    if (.not. found) exit 
+    if (nunit .gt. 1000) exit 
+    nunit = nunit + 1
+  end do
+  
+  !we didn't find the unit was taken, read
+  if (.not. found) then
+    open(file='fsysinfo',unit=nunit,status='old',&
+         form='unformatted')
+    read(nunit) sys
+    close(nunit) 
+  else
+    write(*,'(A)') "fsys ERROR ERROR ERROR"
+    write(*,'(A)') "Could not find an unsed unit to recover with"
+    STOP 1
+  end if
+
+end subroutine fsys_recover
 
 !--------------------------------------------------------
 ! fsys_open

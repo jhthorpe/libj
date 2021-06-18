@@ -14,23 +14,21 @@ program test
   character(len=8) :: bar
 
   nelm = 1000
+  !EXAMPLE FOR DBUF
   call dmem_init(nelm,dmeta)
   call dmem_info(dmeta)
 
   call dmem_checkout(10,i0(1),dmeta)
-  write(*,*) "I0(1) is",i0(1)
   call dmem_info(dmeta)
-  call dmem_checkout(10,i0(2),dmeta)
-  call dmem_info(dmeta)
-  write(*,*) "I0(2) is",i0(2)
 
-  write(*,*) "testing len8",sizeof(bar) 
-  write(*,*) "testing int*8",sizeof(nelm)
-
-  write(*,*)
+  !EXAMPLE FOR FSYS
   call fsys_init(sys)
   call fsys_print(sys)
-  call fsys_add(sys,'CRAP    ',5*8,fid)
+  call fsys_add(sys,'FILE1   ',5*8,fid)
+  call fsys_add(sys,'FILE2   ',10*8,fid)
+  write(*,*) "fid is",fid
+  fid = fsys_getid(sys,'FILE2   ')
+  write(*,*) "getid returned",fid
   call fsys_print(sys)
   
   write(*,*)  
@@ -48,6 +46,14 @@ program test
   call fsys_close_all(sys)
   write(*,*) DBUF(1:20)
   write(*,*) IBUF(1:3)
+
+  call fsys_save(sys)
+
+  write(*,*) "fsys was saved"
+ 
+  call fsys_recover(sys)
+  write(*,*) "fsys was recovered"
+  call fsys_print(sys)
   
   
 end program test
