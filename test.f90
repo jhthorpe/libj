@@ -24,8 +24,8 @@ program test
   !EXAMPLE FOR FSYS
   call fsys_init(sys)
   call fsys_print(sys)
-  call fsys_add(sys,'FILE1   ',5*8,fid)
-  call fsys_add(sys,'FILE2   ',10*8,fid)
+  call fsys_add(sys,'FILE1   ',5,fid)
+  call fsys_add(sys,'FILE2   ',10,fid)
   write(*,*) "fid is",fid
   fid = fsys_getid(sys,'FILE2   ')
   write(*,*) "getid returned",fid
@@ -33,19 +33,16 @@ program test
   
   write(*,*)  
   DBUF(1:20) = 10.d0
-  IBUF(1:3) = 5
   call fsys_open(sys,fid,1)
   call fsys_dwrite(sys,fid,1,19,DBUF(1:19))
-  call fsys_iwrite(sys,fid,20*8+1,3,IBUF(1:3))
   call fsys_close_all(sys)
 
   write(*,*) "we have written file"
+  DBUF = -1.d0
   call fsys_open(sys,fid,0)
   call fsys_dread(sys,fid,1,19,DBUF(1:19))
-  call fsys_iread(sys,fid,20*8+1,3,IBUF(1:3))
   call fsys_close_all(sys)
   write(*,*) DBUF(1:20)
-  write(*,*) IBUF(1:3)
 
   call fsys_save(sys)
 

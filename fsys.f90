@@ -2,7 +2,7 @@
 ! fsys
 !	- module containing subroutines, types, and 
 !	  functions related to constructing, writing
-!	  and reading files.
+!	  and reading files of double prescision.
 !--------------------------------------------------------
 ! To use
 !	1. Initialize or recover the filesystem. 
@@ -30,7 +30,7 @@
 ! fsys_print(sys)	  : prints info about filesystem
 !
 ! fsys_add(sys,name,  	  : adds a file to the system
-!          rbyte,fid)         and returns file id
+!          recelm,fid)        and returns file id
 !
 ! fsys_getid(sys,name)	  : returns the file id of a 
 !	                    file with some name
@@ -79,9 +79,8 @@ module fsys
 ! file_next		: int*8, index of next file
 ! file_name(100)	: chr*8, name of files
 ! file_unit(100)	: int*8, units of files
-! file_recbyte(100)	: int*8, record length of file
-! file_x8inrec(100)	: int*8, number of 8-byte that fit on rec
-! file_nextrec(100)	: int*8, location of next rec
+! file_recelm(100)	: int*8, number of dp values per rec
+! file_reclen(100)	: int*8, reclength of file 
 ! file_isopen(100)	: bool,  true if file is open
 
 type jsys_type
@@ -91,9 +90,9 @@ type jsys_type
   integer(kind=8)  :: file_next
   character(len=8) :: file_name(100)
   integer(kind=8)  :: file_unit(100)
-  integer(kind=8)  :: file_recbyte(100)
-  integer(kind=8)  :: file_x8inrec(100)
-  integer(kind=8)  :: file_nextrec(100)
+  integer(kind=8)  :: file_recelm(100)
+  integer(kind=8)  :: file_reclen(100)
+  integer(kind=8)  :: file_(100)
   logical          :: file_isopen(100)
 end type jsys_type
 
@@ -106,15 +105,17 @@ contains
 subroutine fsys_init(sys)
   implicit none
   type(jsys_type), intent(inout) :: sys
+  integer(kind=8) :: dlen
+
+  inquire(iolength=dlen) 1.d0
   
   sys%file_num                      = 0
   sys%file_nfree                    = sys%file_nmax
   sys%file_next                     = 1
   sys%file_name(1:sys%file_nmax)    = '        '
   sys%file_unit(1:sys%file_nmax)    = 10
-  sys%file_recbyte(1:sys%file_nmax) = 1
-  sys%file_x8inrec(1:sys%file_nmax) = 0
-  sys%file_nextrec(1:sys%file_nmax) = 1
+  sys%file_recelm(1:sys%file_nmax)  = 5 
+  sys%file_reclen(1:sys%file_nmax)  = 5*dlen
   sys%file_isopen(1:sys%file_nmax)  = .false.
 
 end subroutine fsys_init
@@ -140,9 +141,8 @@ subroutine fsys_print(sys)
     write(*,'(1x,A,A8)')  "File name          : ",sys%file_name(i)
     write(*,'(1x,A,I4)')  "File unit          : ",sys%file_unit(i) 
     write(*,'(1x,A,L)')   "File is open       : ",sys%file_isopen(i)
-    write(*,'(1x,A,I20)') "File Record Length : ",sys%file_recbyte(i)
-    write(*,'(1x,A,I20)') "DP elem per record : ",sys%file_x8inrec(i)
-    write(*,'(1x,A,I20)') "Next rec on file   : ",sys%file_nextrec(i)
+    write(*,'(1x,A,I20)') "File Record Length : ",sys%file_reclen(i)
+    write(*,'(1x,A,I20)') "DP elem per record : ",sys%file_recelm(i)
   end do 
   write(*,*)
 end subroutine fsys_print
@@ -163,6 +163,7 @@ subroutine fsys_add(sys,fname,frlen,fid)
   character(len=8), intent(in)    :: fname
   integer(kind=8), intent(in)     :: frlen
   integer(kind=8), intent(inout)  :: fid
+  integer(kind=8)                 :: dlen 
   
   !check we have space
   if (sys%file_nfree .lt. 1) then
@@ -188,8 +189,9 @@ subroutine fsys_add(sys,fname,frlen,fid)
 
   sys%file_name(fid) = fname
   sys%file_unit(fid) = sys%file_unit(fid) + fid
-  sys%file_recbyte(fid) = frlen
-  sys%file_x8inrec(fid) = frlen/8 !convert from bytes
+  sys%file_recelm(fid) = frlen
+  inquire(iolength=dlen) 1.d0
+  sys%file_reclen(fid) = dlen*frlen
   
 end subroutine fsys_add
 
@@ -336,7 +338,7 @@ subroutine fsys_open(sys,fid,rdwr)
   if (.not. sys%file_isopen(fid)) then 
     open(file=trim(sys%file_name(fid)),unit=sys%file_unit(fid), &
          status=trim(stat),form='unformatted',access='direct', &
-         recl=sys%file_recbyte(fid))
+         recl=sys%file_reclen(fid))
     sys%file_isopen(fid) = .true.
   end if
 
@@ -411,7 +413,7 @@ subroutine fsys_dwrite(sys,fid,sr,N,BUF)
 
 
   funit=sys%file_unit(fid)
-  ll = sys%file_x8inrec(fid) !num dp per rec
+  ll = sys%file_recelm(fid) !num dp per rec
   nl = (N + ll - 1)/ll       !number of rec 
   nn = sr + nl - 2           !i0 rec to stop loop on              
 
@@ -463,7 +465,7 @@ subroutine fsys_iwrite(sys,fid,sr,N,BUF)
   integer(kind=8) :: nn,ll,nl
 
   funit=sys%file_unit(fid)
-  ll = sys%file_x8inrec(fid) !num dp per rec
+  ll = sys%file_recelm(fid) !num dp per rec
   nl = (N + ll - 1)/ll       !number of rec 
   nn = sr + nl - 2           !io rec to end loop on            
 
@@ -514,8 +516,8 @@ subroutine fsys_dread(sys,fid,sr,N,BUF)
   integer(kind=8) :: i0,i1,i2,funit
   integer(kind=8) :: nn,ll,nl
 
-  funit=sys%file_unit(fid)
-  ll = sys%file_x8inrec(fid) !num dp per rec
+  funit = sys%file_unit(fid)
+  ll = sys%file_recelm(fid)  !num dp per rec
   nl = (N + ll - 1)/ll       !number of rec 
   nn = sr + nl - 2           !io rec to end loop on            
 
@@ -567,7 +569,7 @@ subroutine fsys_iread(sys,fid,sr,N,BUF)
   integer(kind=8) :: nn,ll,nl
 
   funit=sys%file_unit(fid)
-  ll = sys%file_x8inrec(fid) !num dp per rec
+  ll = sys%file_recelm(fid) !num dp per rec
   nl = (N + ll - 1)/ll       !number of rec 
   nn = sr + nl - 2           !io rec to end loop on            
 
