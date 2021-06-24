@@ -1,10 +1,8 @@
 !--------------------------------------------------------
 ! fsys
 !	- module containing subroutines, types, and 
-!	  functions related to constructing, storing
+!	  functions related to constructing, writing
 !	  and reading files.
-!
-!	-  
 !--------------------------------------------------------
 ! To use
 !	1. Initialize or recover the filesystem. 
@@ -12,8 +10,8 @@
 !          calling program.
 !	2. add any files that you want. File id's will
 !	   need to be stored by the calling program,
-!	   or recovered with fsys_getit() 
-!	3. open then to read and write
+!	   or recovered with fsys_getid() 
+!	3. open files to read and write
 !	4. close files
 !	5. Optionally, save the filesystem in order to 
 !	   recover it in a seperate program
@@ -22,26 +20,41 @@
 !	  - all integers must be kind=8
 !	  - fsyinfo file saves the filesystem and should
 !	    note be overwritten
+!	  - NOTE: in read/write, it is assumed the files
+!	    have been oppened correctly, in order to
+!	    avoid if statements
 !--------------------------------------------------------
 ! Subroutines and functions
 ! fsys_init(sys)	  : initializes the filesystem
+!
 ! fsys_print(sys)	  : prints info about filesystem
+!
 ! fsys_add(sys,name,  	  : adds a file to the system
 !          rbyte,fid)         and returns file id
+!
 ! fsys_getid(sys,name)	  : returns the file id of a 
 !	                    file with some name
+!
 ! fsys_save(sys)	  : saves the datastruct to 
 !	                    a special file to be recovered
+!
 ! fsys_recover(sys)	  : recovers a saved filesystem
+!
 ! fsys_close(sys,fid)     : closes a file
+!
 ! fsys_open(sys,fidm,rw)  : opens a file for read/write
+!
 ! fsys_close_all(sys,fid) : closes all files
+!
 ! fsys_dwrite(sys,fid,sr, : writes a real*8 buffer to 
 !             N,BUF)          file starting at rec sr
+!
 ! fsys_iwrite(sys,fid,sr, : writes a int*8 buffer to 
 !             N,BUF)          file starting at rec sr
+!
 ! fsys_dread(sys,fid,sr, : reads a real*8 buffer from
 !             N,BUF)          file starting at rec sr
+!
 ! fsys_iread(sys,fid,sr, : reads a int*8 buffer from
 !             N,BUF)          file starting at rec sr
 !
@@ -99,7 +112,7 @@ subroutine fsys_init(sys)
   sys%file_next                     = 1
   sys%file_name(1:sys%file_nmax)    = '        '
   sys%file_unit(1:sys%file_nmax)    = 10
-  sys%file_recbyte(1:sys%file_nmax)  = 1
+  sys%file_recbyte(1:sys%file_nmax) = 1
   sys%file_x8inrec(1:sys%file_nmax) = 0
   sys%file_nextrec(1:sys%file_nmax) = 1
   sys%file_isopen(1:sys%file_nmax)  = .false.
@@ -400,28 +413,29 @@ subroutine fsys_dwrite(sys,fid,sr,N,BUF)
   funit=sys%file_unit(fid)
   ll = sys%file_x8inrec(fid) !num dp per rec
   nl = (N + ll - 1)/ll       !number of rec 
-  nn = sr + nl               
+  nn = sr + nl - 2           !i0 rec to stop loop on              
 
   !Fancy infinite loop, which performs 3 less
   !  operations than a traditional do-loop. Helps
-  !  in the case of small writes 
+  !  in the case of many small writes 
   !This writes all the elements except the last
   i0 = sr 
   i1 = 1  !location in buffer
   i2 = ll !location in buffer
   do while (.true.)
     write(funit,rec=i0) BUF(i1:i2)
-    if (i0 .ge. nn-1) exit
+    if (i0 .ge. nn) exit
     i0 = i0 + 1
     i1 = i1 + ll
     i2 = i2 + ll
   end do 
 
   !fill in the last element
-  i0 = i0 + 1
   i1 = i1 + ll
-  i2 = N 
-  write(funit,rec=i0) BUF(i1:i2)
+  if (i1 .lt. N) then
+    i0 = i0 + 1
+    write(funit,rec=i0) BUF(i1:N)
+  end if 
 
 end subroutine fsys_dwrite
 
@@ -451,28 +465,29 @@ subroutine fsys_iwrite(sys,fid,sr,N,BUF)
   funit=sys%file_unit(fid)
   ll = sys%file_x8inrec(fid) !num dp per rec
   nl = (N + ll - 1)/ll       !number of rec 
-  nn = sr + nl               
+  nn = sr + nl - 2           !io rec to end loop on            
 
   !Fancy infinite loop, which performs 3 less
   !  operations than a traditional do-loop. Helps
-  !  in the case of small writes 
+  !  in the case of many small writes 
   !This writes all the elements except the last
   i0 = sr 
   i1 = 1  !location in buffer
   i2 = ll !location in buffer
   do while (.true.)
     write(funit,rec=i0) BUF(i1:i2)
-    if (i0 .ge. nn-1) exit
+    if (i0 .ge. nn) exit
     i0 = i0 + 1
     i1 = i1 + ll
     i2 = i2 + ll
   end do 
   
   !fill in the last element
-  i0 = i0 + 1
   i1 = i1 + ll
-  i2 = N 
-  write(funit,rec=i0) BUF(i1:i2)
+  if (i1 .lt. N) then
+    i0 = i0 + 1
+    write(funit,rec=i0) BUF(i1:N)
+  end if
 
 end subroutine fsys_iwrite
 
@@ -502,28 +517,29 @@ subroutine fsys_dread(sys,fid,sr,N,BUF)
   funit=sys%file_unit(fid)
   ll = sys%file_x8inrec(fid) !num dp per rec
   nl = (N + ll - 1)/ll       !number of rec 
-  nn = sr + nl               
+  nn = sr + nl - 2           !io rec to end loop on            
 
   !Fancy infinite loop, which performs 3 less
   !  operations than a traditional do-loop. Helps
-  !  in the case of small writes 
+  !  in the case of many small reads
   !This writes all the elements except the last
   i0 = sr 
   i1 = 1  !location in buffer
   i2 = ll !location in buffer
   do while (.true.)
     read(funit,rec=i0) BUF(i1:i2)
-    if (i0 .ge. nn-1) exit
+    if (i0 .ge. nn) exit
     i0 = i0 + 1
     i1 = i1 + ll
     i2 = i2 + ll
   end do 
   
   !fill in the last element
-  i0 = i0 + 1
   i1 = i1 + ll
-  i2 = N 
-  read(funit,rec=i0) BUF(i1:i2)
+  if (i1 .lt. N) then
+    i0 = i0 + 1
+    read(funit,rec=i0) BUF(i1:N)
+  end if
 
 end subroutine fsys_dread
 
@@ -553,28 +569,29 @@ subroutine fsys_iread(sys,fid,sr,N,BUF)
   funit=sys%file_unit(fid)
   ll = sys%file_x8inrec(fid) !num dp per rec
   nl = (N + ll - 1)/ll       !number of rec 
-  nn = sr + nl               
+  nn = sr + nl - 2           !io rec to end loop on            
 
   !Fancy infinite loop, which performs 3 less
   !  operations than a traditional do-loop. Helps
-  !  in the case of small writes 
+  !  in the case of many small reads
   !This writes all the elements except the last
   i0 = sr 
   i1 = 1  !location in buffer
   i2 = ll !location in buffer
   do while (.true.)
     read(funit,rec=i0) BUF(i1:i2)
-    if (i0 .ge. nn-1) exit
+    if (i0 .ge. nn) exit
     i0 = i0 + 1
     i1 = i1 + ll
     i2 = i2 + ll
   end do 
   
   !fill in the last element
-  i0 = i0 + 1
   i1 = i1 + ll
-  i2 = N 
-  read(funit,rec=i0) BUF(i1:i2)
+  if (i1 .le. N) then
+    i0 = i0 + 1
+    read(funit,rec=i0) BUF(i1:N)
+  end if  
 
 end subroutine fsys_iread
 !--------------------------------------------------------

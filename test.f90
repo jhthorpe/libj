@@ -35,13 +35,13 @@ program test
   DBUF(1:20) = 10.d0
   IBUF(1:3) = 5
   call fsys_open(sys,fid,1)
-  call fsys_dwrite(sys,fid,1,20,DBUF(1:20))
+  call fsys_dwrite(sys,fid,1,19,DBUF(1:19))
   call fsys_iwrite(sys,fid,20*8+1,3,IBUF(1:3))
   call fsys_close_all(sys)
 
   write(*,*) "we have written file"
   call fsys_open(sys,fid,0)
-  call fsys_dread(sys,fid,1,20,DBUF(1:20))
+  call fsys_dread(sys,fid,1,19,DBUF(1:19))
   call fsys_iread(sys,fid,20*8+1,3,IBUF(1:3))
   call fsys_close_all(sys)
   write(*,*) DBUF(1:20)
