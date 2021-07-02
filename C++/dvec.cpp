@@ -183,3 +183,20 @@ void dvec::print() const
     i++;
   }
 }
+
+/*-------------------------------------------------------
+   zero 
+	- zeros the vector. Uses a fancy inf. loop to 
+	  do one less action per iteration
+-------------------------------------------------------*/
+void dvec::zero()
+{
+  std::size_t i=0;
+  const std::size_t ll=len-1;
+  while (true)
+  {
+    *(buf+i) = 0;
+    if (i >= ll) break;
+    i++;
+  }
+}

@@ -214,3 +214,67 @@ void dgemat::print() const
     }
   }
 }
+
+/*-------------------------------------------------------
+  zero()
+	- zeros the matrix 
+-------------------------------------------------------*/
+void dgemat::zero()
+{
+  const std::size_t ll=len-1;
+  std::size_t i=0;
+  while (true)
+  {
+    *(buf+i) = 0;
+    if (i >= ll) break;
+    i++;
+  }
+}
+
+/*-------------------------------------------------------
+  I() 
+	- makes the main diagonal of the matrix = 1 
+        - one could do this in two setps, but 
+            here we only make one pass through the 
+            buffer
+
+   example
+   1 0 0      1 0 0 0      1 0 0
+   0 1 0  or  0 1 0 0  or  0 1 0
+   0 0 1      0 0 1 0      0 0 1
+   0 0 0
+
+-------------------------------------------------------*/
+void dgemat::I()
+{
+  //find number of iterations to traverse
+  const std::size_t nitr=(nrow < ncol) ? nrow : ncol; 
+  const std::size_t nr=nrow+1;
+  std::size_t i=0;
+ 
+  //go to end of part with 1's
+  std::size_t itr=1;
+  while (true)
+  {
+    *(buf+i) = 1;
+    i++;
+    
+    //the extra i++ here is wanted
+    //make all elements up to next diag zero
+    for (i=i;i<itr*nr;i++)
+    {
+      *(buf+i) = 0;
+    }
+
+    if (itr >= nitr) break;
+    itr++; 
+  }
+
+  //zero remaining elements
+  while (true)
+  {
+    *(buf+i) = 0;
+    if (i >= len) break;
+    i++;
+  }
+}

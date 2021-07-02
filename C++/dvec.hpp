@@ -1,7 +1,37 @@
 /*-------------------------------------------------------
   dvec.hpp
-  Header file for dvec class and functions, designed to
-  deal with double precision vectors
+  
+  (D)ouble precision, (VEC)tor
+
+  NOTE : There is NO BOUNDS CHECKING in this class
+
+  NOTE : Indexing begins at zero 
+
+  ACCESSING OPTIONS
+  --------------------------
+  v(i)                  //access i'th element in buffer
+  v[i]			//access i'th element in buffer
+
+  INITIALIZATION OPTIONS
+  --------------------------
+  dvec v;		//generate class, nothing else
+  dvec v(5);		//generate and allocate via malloc
+  dvec v(5,pntr);	//generates and assign location
+  v.allocate(5);	//allocates via malloc 
+  v.assign(5,pntr);	//assigns buffer to address
+
+  DEALLOCATION OPTIONS
+  --------------------------
+  v.deallocate();	//if allocated, free memory
+  v.unassign();		//points buffer to NULL
+  
+  FUNCTIONS
+  --------------------------
+  v.print();		//prints whole matrix
+  v.info();		//prints info about matrix
+  v.zero();		//zeros the whole matrix
+  v.size();		//returns number of elem (size_t)
+
 --------------------------------------------------------*/
 #ifndef DVEC_HPP
 #define DVEC_HPP
@@ -37,7 +67,7 @@ class dvec
   std::size_t size() const;				//return length
   void info() const;					//print info
   void print() const;					//prints the elements of the vector
-  
+  void zero();						//zeros the vector
 };
 
 #endif

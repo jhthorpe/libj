@@ -1,14 +1,44 @@
 /*-------------------------------------------------------
   dgemat.hpp
-  Header file for dgemat class and functions, designed to
-  deal with a general, double prescision matrix
+	JHT, July 2, 2021
+  
+  (D)ouble precision, (GE)neral (MAT)rix
 
   NOTE : this matrix is accessed in COLUMN-MAJOR order, 
-         which this author believes to be superior
+         which this author believes to be superior. 
 
-  This has two modes of access:
-  (i,j) -- determines location from nrow,ncol  
-  [i]   -- determines location from start + distance
+  NOTE : There is NO BOUNDS CHECKING in this class
+
+  NOTE : Indexing begins at zero 
+
+  ACCESSING OPTIONS
+  --------------------------
+  M(i,j)		//access in COL-MAJOR order 
+  M[i]			//access i'th element in buffer
+
+  INITIALIZATION OPTIONS
+  --------------------------
+  dgemat M;     	//generate class, nothing else
+  dgemat M(2,3);	//generate and allocate via malloc
+  dgemat M(2,3,pntr);	//generates and assign location
+  M.allocate(2,3);	//allocates via malloc 
+  M.assign(2,3,pntr);	//assigns buffer to address
+
+  DEALLOCATION OPTIONS
+  --------------------------
+  M.deallocate();	//if allocated, free memory
+  M.unassign();		//points buffer to NULL
+  
+  FUNCTIONS
+  --------------------------
+  M.print();		//prints whole matrix
+  M.info();		//prints info about matrix
+  M.size();		//returns number of elem (size_t)
+  M.rows();		//returns number of rows (size_t)
+  M.cols();		//returns number of cols (size_t)
+  M.zero();		//zeros the whole matrix
+  M.I();		//makes matrix the identity
+
 --------------------------------------------------------*/
 #ifndef DGEMAT_HPP
 #define DGEMAT_HPP
@@ -51,6 +81,8 @@ class dgemat
 
   void info() const;							//print info
   void print() const;							//prints matrix
+  void zero();								//makes matrix zero
+  void I();								//makes matrix identity
   
 };
 
