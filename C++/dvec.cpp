@@ -21,11 +21,15 @@ dvec::dvec()
 
 dvec::dvec(const std::size_t n)
 {
+  assigned = false;
+  allocated = false;
   allocate(n);
 }
 
 dvec::dvec(const std::size_t n, double* ptr)
 {
+  assigned = false;
+  allocated = false;
   assign(n,ptr);
 }
 /*-------------------------------------------------------
@@ -156,9 +160,26 @@ void dvec::info() const
 
 /*-------------------------------------------------------
    size
-	- prints number of elements in vector 
+	- returns number of elements of vector 
 -------------------------------------------------------*/
 std::size_t dvec::size() const
 {
   return(len);
+}
+
+/*-------------------------------------------------------
+   print
+	- prints elements of vector 
+	- uses a fancy infinite loop to do one less 
+          action per iteration
+-------------------------------------------------------*/
+void dvec::print() const
+{
+  std::size_t i=0;
+  while (true)
+  {
+    printf("[%lu]    %18.15E \n",i,*(buf+i)); 
+    if (i >= len-1) break; 
+    i++;
+  }
 }

@@ -35,7 +35,8 @@ class dvec
   void assign(const std::size_t n, double* ptr);	//assign to memory
   void unassign();					//unassign to memory
   std::size_t size() const;				//return length
-  void info() const;						//print info
+  void info() const;					//print info
+  void print() const;					//prints the elements of the vector
   
 };
 
