@@ -1,9 +1,6 @@
 /*-------------------------------------------------------
   dcore.cpp 
 	Class for dealing with core memory
-
-
-  
 --------------------------------------------------------*/
 #include "dcore.hpp"
 
@@ -11,13 +8,13 @@
   Constructors
     - internal routine to construct dcore
   
-  const size_t	: n, number of elements to allocate 
+  const uint64_t	: n, number of elements to allocate 
 -------------------------------------------------------*/
 dcore::dcore() : len{0}, allocated{false} 
 {
 }
 
-dcore::dcore(const std::size_t n) 
+dcore::dcore(const std::uint64_t n) 
 {
   allocate(n);
 }
@@ -38,11 +35,11 @@ dcore::~dcore()
   Allocator  
     - allocates the buffer
 
-  const size_t	: n, number of elements to allocate 
+  const uint64_t	: n, number of elements to allocate 
 -------------------------------------------------------*/
-void dcore::allocate(const std::size_t n)
+void dcore::allocate(const std::uint64_t n)
 {
-  const std::size_t mm=std::numeric_limits<std::size_t>::max();
+  const std::uint64_t mm=std::numeric_limits<std::uint64_t>::max();
   if (!allocated && n > 1 && n <= mm) 
   {
     buf = (double*) malloc(n*sizeof(double));
@@ -57,7 +54,7 @@ void dcore::allocate(const std::size_t n)
     printf("Attempted to allocate dcore of < 1 element \n");
     exit(1);
   } else if (n > mm) {
-    printf("Attempted to allocate dcore beyond size_t limit \n");
+    printf("Attempted to allocate dcore beyond uint64_t limit \n");
     exit(1);
   }
 
@@ -97,8 +94,8 @@ void dcore::info() const
   if (allocated)
   {
     printf("dcore has \n");
-    printf("%zu elements \n",len);
-    printf("%zu free elements \n",navbl);
+    printf("%llu elements \n",len);
+    printf("%llu free elements \n",navbl);
     printf("buffer begins at %p \n",buf);
     printf("next element  at %p \n",next);
   } else {
@@ -111,22 +108,22 @@ void dcore::info() const
   size()
 	- returns the size of the array
 -------------------------------------------------------*/
-std::size_t dcore::size() const {return len;}
+std::uint64_t dcore::size() const {return len;}
 
 /*-------------------------------------------------------
   nfree()
 	- returns the size of number of free elements
 -------------------------------------------------------*/
-std::size_t dcore::nfree() const {return navbl;}
+std::uint64_t dcore::nfree() const {return navbl;}
 
 /*-------------------------------------------------------
-  checkout(const size_t n) 
+  checkout(const uint64_t n) 
     - checks out a section of dcore, and returns a 
       pointer to the location 
 
-  const size_t		: n, number of elements 
+  const uint64_t		: n, number of elements 
 -------------------------------------------------------*/
-double* dcore::checkout(const std::size_t n)
+double* dcore::checkout(const std::uint64_t n)
 {
   if (allocated) 
   {
@@ -146,13 +143,13 @@ double* dcore::checkout(const std::size_t n)
 }
 
 /*-------------------------------------------------------
-  remove(const size_t n) 
+  remove(const uint64_t n) 
     - removes a number of elements from the end of the
       memory 
 
-  const size_t		: n, number of elements 
+  const uint64_t		: n, number of elements 
 -------------------------------------------------------*/
-double* dcore::remove(const std::size_t n)
+double* dcore::remove(const std::uint64_t n)
 {
   if (allocated) 
   {
@@ -172,14 +169,14 @@ double* dcore::remove(const std::size_t n)
 }
 /*-------------------------------------------------------
   () accessing 
-  const size_t		: i, number of elements 
+  const uint64_t		: i, number of elements 
 -------------------------------------------------------*/
-double& dcore::operator() (const std::size_t i)
+double& dcore::operator() (const std::uint64_t i)
 {
   return(*(buf+i));
 }
 
-double dcore::operator() (const std::size_t i) const
+double dcore::operator() (const std::uint64_t i) const
 {
   return (*(buf+i));
 }

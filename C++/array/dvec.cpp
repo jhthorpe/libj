@@ -19,14 +19,14 @@ dvec::dvec()
   buf = NULL;
 }
 
-dvec::dvec(const std::size_t n)
+dvec::dvec(const std::uint64_t n)
 {
   assigned = false;
   allocated = false;
   allocate(n);
 }
 
-dvec::dvec(const std::size_t n, double* ptr)
+dvec::dvec(const std::uint64_t n, double* ptr)
 {
   assigned = false;
   allocated = false;
@@ -51,10 +51,10 @@ dvec::~dvec()
     - uses malloc to allocate an double prescision 
       vector
 -------------------------------------------------------*/
-void dvec::allocate(const std::size_t n)
+void dvec::allocate(const std::uint64_t n)
 {
-  const std::size_t mm=std::numeric_limits<std::size_t>::max();
-  if (!(allocated || assigned) && n > 1 && n <= mm) 
+  const std::uint64_t mm=std::numeric_limits<std::uint64_t>::max();
+  if (!(allocated || assigned) && n >= 1 && n <= mm) 
   {
     len = n;
     buf = (double*) malloc(n*sizeof(double));
@@ -64,7 +64,7 @@ void dvec::allocate(const std::size_t n)
     printf("Attempted to allocate dvec of < 1 element \n");
     exit(1);
   } else if (n > mm) {
-    printf("Attempted to allocated dvec > size_t limit \n");
+    printf("Attempted to allocated dvec > uint64_t limit \n");
     exit(1);
   } else if (allocated || assigned) {
     printf("Attempted to allocate an already set dvec \n");
@@ -76,10 +76,10 @@ void dvec::allocate(const std::size_t n)
      - points the start of the array to a location
        in memory
 -------------------------------------------------------*/
-void dvec::assign(const std::size_t n, double* pntr)
+void dvec::assign(const std::uint64_t n, double* pntr)
 {
-  const std::size_t mm=std::numeric_limits<std::size_t>::max();
-  if (!(allocated || assigned) && n < mm) 
+  const std::uint64_t mm=std::numeric_limits<std::uint64_t>::max();
+  if (!(allocated || assigned) && n >= 1 && n < mm) 
   {
     buf = pntr;
     len = n;
@@ -92,7 +92,7 @@ void dvec::assign(const std::size_t n, double* pntr)
     printf("Attempted to assign dvec with len < 1 \n");
     exit(1);
   } else if (n > mm) {
-    printf("Attempted to assign dvec > size_t limit \n");
+    printf("Attempted to assign dvec > uint64_t limit \n");
     exit(1);
   }
 }
@@ -131,12 +131,12 @@ void dvec::unassign()
 /*-------------------------------------------------------
    () operator overloading 
 -------------------------------------------------------*/
-double& dvec::operator() (const std::size_t i)
+double& dvec::operator() (const std::uint64_t i)
 {
   return(*(buf+i));
 }
 
-double dvec::operator() (const std::size_t i) const
+double dvec::operator() (const std::uint64_t i) const
 {
   return(*(buf+i));
 }
@@ -149,11 +149,11 @@ void dvec::info() const
 {
   if (assigned || allocated) 
   {
-    printf("dvec has %lu elements \n",len);
+    printf("dvec has %lld elements \n",len);
     printf("dvec points to  %p \n",buf);
   } else {
     printf("dvec is unset \n");
-    printf("dvec has %lu elements \n",len);
+    printf("dvec has %lld elements \n",len);
   }
 }
 
@@ -162,7 +162,7 @@ void dvec::info() const
    size
 	- returns number of elements of vector 
 -------------------------------------------------------*/
-std::size_t dvec::size() const
+std::uint64_t dvec::size() const
 {
   return(len);
 }
@@ -175,10 +175,10 @@ std::size_t dvec::size() const
 -------------------------------------------------------*/
 void dvec::print() const
 {
-  std::size_t i=0;
+  std::uint64_t i=0;
   while (true)
   {
-    printf("[%lu]    %18.15E \n",i,*(buf+i)); 
+    printf("[%lld]    %18.15E \n",i,*(buf+i)); 
     if (i >= len-1) break; 
     i++;
   }
@@ -191,8 +191,9 @@ void dvec::print() const
 -------------------------------------------------------*/
 void dvec::zero()
 {
-  std::size_t i=0;
-  const std::size_t ll=len-1;
+  assert (allocated||assigned);
+  std::uint64_t i=0;
+  const std::uint64_t ll=len-1;
   while (true)
   {
     *(buf+i) = 0;
