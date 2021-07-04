@@ -1,7 +1,7 @@
 SHELL:=/bin/bash
 include make.config
 
-dirs := core array
+dirs := core array fsys
 
 all : 
 	if [ ! -d $(objdir) ]; then mkdir -p $(objdir); fi
