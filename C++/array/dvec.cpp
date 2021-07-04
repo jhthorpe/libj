@@ -19,14 +19,14 @@ dvec::dvec()
   buf = NULL;
 }
 
-dvec::dvec(const std::uint64_t n)
+dvec::dvec(const long n)
 {
   assigned = false;
   allocated = false;
   allocate(n);
 }
 
-dvec::dvec(const std::uint64_t n, double* ptr)
+dvec::dvec(const long n, double* ptr)
 {
   assigned = false;
   allocated = false;
@@ -51,9 +51,9 @@ dvec::~dvec()
     - uses malloc to allocate an double prescision 
       vector
 -------------------------------------------------------*/
-void dvec::allocate(const std::uint64_t n)
+void dvec::allocate(const long n)
 {
-  const std::uint64_t mm=std::numeric_limits<std::uint64_t>::max();
+  const long mm=std::numeric_limits<long>::max();
   if (!(allocated || assigned) && n >= 1 && n <= mm) 
   {
     len = n;
@@ -76,9 +76,9 @@ void dvec::allocate(const std::uint64_t n)
      - points the start of the array to a location
        in memory
 -------------------------------------------------------*/
-void dvec::assign(const std::uint64_t n, double* pntr)
+void dvec::assign(const long n, double* pntr)
 {
-  const std::uint64_t mm=std::numeric_limits<std::uint64_t>::max();
+  const long mm=std::numeric_limits<long>::max();
   if (!(allocated || assigned) && n >= 1 && n < mm) 
   {
     buf = pntr;
@@ -131,12 +131,12 @@ void dvec::unassign()
 /*-------------------------------------------------------
    () operator overloading 
 -------------------------------------------------------*/
-double& dvec::operator() (const std::uint64_t i)
+double& dvec::operator() (const long i)
 {
   return(*(buf+i));
 }
 
-double dvec::operator() (const std::uint64_t i) const
+double dvec::operator() (const long i) const
 {
   return(*(buf+i));
 }
@@ -149,11 +149,11 @@ void dvec::info() const
 {
   if (assigned || allocated) 
   {
-    printf("dvec has %lld elements \n",len);
+    printf("dvec has %ld elements \n",len);
     printf("dvec points to  %p \n",buf);
   } else {
     printf("dvec is unset \n");
-    printf("dvec has %lld elements \n",len);
+    printf("dvec has %ld elements \n",len);
   }
 }
 
@@ -162,7 +162,7 @@ void dvec::info() const
    size
 	- returns number of elements of vector 
 -------------------------------------------------------*/
-std::uint64_t dvec::size() const
+long dvec::size() const
 {
   return(len);
 }
@@ -175,10 +175,10 @@ std::uint64_t dvec::size() const
 -------------------------------------------------------*/
 void dvec::print() const
 {
-  std::uint64_t i=0;
+  long i=0;
   while (true)
   {
-    printf("[%lld]    %18.15E \n",i,*(buf+i)); 
+    printf("[%ld]    %18.15E \n",i,*(buf+i)); 
     if (i >= len-1) break; 
     i++;
   }
@@ -192,8 +192,8 @@ void dvec::print() const
 void dvec::zero()
 {
   assert (allocated||assigned);
-  std::uint64_t i=0;
-  const std::uint64_t ll=len-1;
+  long i=0;
+  const long ll=len-1;
   while (true)
   {
     *(buf+i) = 0;

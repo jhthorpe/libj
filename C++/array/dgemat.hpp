@@ -9,8 +9,7 @@
 
   NOTE : There is NO BOUNDS CHECKING in this class
 
-  NOTE : Indexing begins at zero, and uses explicitly
-         unsigned, 8 byte integers
+  NOTE : Indexing begins at zero
 
   ACCESSING OPTIONS
   --------------------------
@@ -53,40 +52,40 @@
 class dgemat
 {
   private:
-  double*           buf;		//pointer to start of memory
-  std::uint64_t     len;		//number of elements
-  std::uint64_t    nrow;		//number of rows
-  std::uint64_t    ncol;		//number of cols
-  bool        allocated;                //is allocated
-  bool         assigned;                //is assigned
+  double*           buf;					//pointer to start of memory
+  long              len;					//number of elements
+  long             nrow;					//number of rows
+  long             ncol;					//number of cols
+  bool        allocated;                			//is allocated
+  bool         assigned;                			//is assigned
 
   public:
   //initialization/destructors
-  dgemat();									//empty constructor
-  dgemat(const std::uint64_t n, const std::uint64_t m);				//allocate with row,col
-  dgemat(const std::uint64_t n, const std::uint64_t m, double* ptr);		//assign with row,col
- ~dgemat();									//destructor 
+  dgemat();							//empty constructor
+  dgemat(const long n, const long m);				//allocate with row,col
+  dgemat(const long n, const long m, double* ptr);		//assign with row,col
+ ~dgemat();							//destructor 
 
   //Operator overloading
-  double& operator() (const std::uint64_t i, const std::uint64_t j);		//ref elm i,j
-  double operator() (const std::uint64_t i, const std::uint64_t j) const; 	//const elm i,j
-  double& operator[] (const std::uint64_t i);					//ref i'th element
-  double operator[] (const std::uint64_t i) const;				//const i'th element
+  double& operator() (const long i, const long j);		//ref elm i,j
+  double operator() (const long i, const long j) const; 	//const elm i,j
+  double& operator[] (const long i);				//ref i'th element
+  double operator[] (const long i) const;			//const i'th element
 
   //Class functions
-  void allocate(const std::uint64_t n, const std::uint64_t m);			//allocate memory 
-  void deallocate();								//deallocate memory
-  void assign(const std::uint64_t n, const std::uint64_t m, double* ptr);	//assign to memory
-  void assign(double* ptr);							//assign to memory
-  void unassign();								//unassign to memory
-  std::uint64_t size() const;							//return length
-  std::uint64_t rows() const;							//return nrow
-  std::uint64_t cols() const;							//return ncol 
+  void allocate(const long n, const long m);			//allocate memory 
+  void deallocate();						//deallocate memory
+  void assign(const long n, const long m, double* ptr);		//assign to memory
+  void assign(double* ptr);					//assign to memory
+  void unassign();						//unassign to memory
+  long size() const;						//return length
+  long rows() const;						//return nrow
+  long cols() const;						//return ncol 
 
-  void info() const;								//print info
-  void print() const;								//prints matrix
-  void zero();									//makes matrix zero
-  void I();									//makes matrix identity
+  void info() const;						//print info
+  void print() const;						//prints matrix
+  void zero();							//makes matrix zero
+  void I();							//makes matrix identity
   
 };
 

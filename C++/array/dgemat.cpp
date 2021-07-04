@@ -21,14 +21,14 @@ dgemat::dgemat()
   buf = NULL;
 }
 
-dgemat::dgemat(const std::uint64_t n, const std::uint64_t m)
+dgemat::dgemat(const long n, const long m)
 {
   allocated = false;
   assigned = false;
   allocate(n,m);
 }
 
-dgemat::dgemat(const std::uint64_t n, const std::uint64_t m, double* ptr)
+dgemat::dgemat(const long n, const long m, double* ptr)
 {
   allocated = false;
   assigned = false;
@@ -51,10 +51,10 @@ dgemat::~dgemat()
 /*-------------------------------------------------------
   Allocate 
 -------------------------------------------------------*/
-void dgemat::allocate(const std::uint64_t n, const std::uint64_t m)
+void dgemat::allocate(const long n, const long m)
 {
-  const std::uint64_t ll = n*m;
-  const std::uint64_t mm=std::numeric_limits<std::uint64_t>::max(); //gives largest uint64_t 
+  const long ll = n*m;
+  const long mm=std::numeric_limits<long>::max(); //gives largest uint64_t 
   if (!(allocated || assigned) && ll >= 1 && ll <= mm) 
   {
     len = ll;
@@ -79,10 +79,10 @@ void dgemat::allocate(const std::uint64_t n, const std::uint64_t m)
      - points the start of the array to a location
        in memory
 -------------------------------------------------------*/
-void dgemat::assign(const std::uint64_t n, const std::uint64_t m, double* pntr)
+void dgemat::assign(const long n, const long m, double* pntr)
 {
-  const std::uint64_t ll=n*m;
-  const std::uint64_t mm=std::numeric_limits<std::uint64_t>::max();
+  const long ll=n*m;
+  const long mm=std::numeric_limits<long>::max();
   if (!(allocated || assigned) && ll >= 1 && ll < mm) 
   {
     buf = pntr;
@@ -141,22 +141,22 @@ void dgemat::unassign()
 /*-------------------------------------------------------
    () and [] operator overloading 
 -------------------------------------------------------*/
-double& dgemat::operator() (const std::uint64_t i, const std::uint64_t j)
+double& dgemat::operator() (const long i, const long j)
 {
   return(*(buf+nrow*j+i));
 }
 
-double dgemat::operator() (const std::uint64_t i, const std::uint64_t j) const
+double dgemat::operator() (const long i, const long j) const
 {
   return(*(buf+nrow*j+i));
 }
 
-double& dgemat::operator[] (const std::uint64_t i)
+double& dgemat::operator[] (const long i)
 {
   return(*(buf + i));
 }
 
-double dgemat::operator[] (const std::uint64_t i) const
+double dgemat::operator[] (const long i) const
 {
   return(*(buf+i));
 }
@@ -168,15 +168,15 @@ void dgemat::info() const
 {
   if (assigned || allocated) 
   {
-    printf("dgemat has %llu elements \n",len);
-    printf("dgemat has %llu rows \n",nrow);
-    printf("dgemat has %llu cols \n",ncol);
+    printf("dgemat has %ld elements \n",len);
+    printf("dgemat has %ld rows \n",nrow);
+    printf("dgemat has %ld cols \n",ncol);
     printf("dgemat points to  %p \n",buf);
   } else {
     printf("dgemat is unset \n");
-    printf("dgemat has %llu elements \n",len);
-    printf("dgemat has %llu rows \n",nrow);
-    printf("dgemat has %llu cols \n",ncol);
+    printf("dgemat has %ld elements \n",len);
+    printf("dgemat has %ld rows \n",nrow);
+    printf("dgemat has %ld cols \n",ncol);
   }
 }
 
@@ -185,15 +185,15 @@ void dgemat::info() const
    size,rows,cols
 	- prints number of elements in vector 
 -------------------------------------------------------*/
-std::uint64_t dgemat::size() const
+long dgemat::size() const
 {
   return(len);
 }
-std::uint64_t dgemat::rows() const
+long dgemat::rows() const
 {
   return(nrow);
 }
-std::uint64_t dgemat::cols() const
+long dgemat::cols() const
 {
   return(ncol);
 }
@@ -205,12 +205,12 @@ std::uint64_t dgemat::cols() const
 void dgemat::print() const
 {
   assert(allocated||assigned);
-  std::uint64_t xx=0;
-  for (std::uint64_t j=0;j<ncol;j++)
+  long xx=0;
+  for (long j=0;j<ncol;j++)
   {
-    for (std::uint64_t i=0;i<nrow;i++)
+    for (long i=0;i<nrow;i++)
     {
-      printf("[%llu,%llu]    %18.15E \n",i,j,*(buf+xx));
+      printf("[%ld,%ld]    %18.15E \n",i,j,*(buf+xx));
       xx++;
     }
   }
@@ -223,8 +223,8 @@ void dgemat::print() const
 void dgemat::zero()
 {
   assert(allocated||assigned);
-  const std::uint64_t ll=len-1;
-  std::uint64_t i=0;
+  const long ll=len-1;
+  long i=0;
   while (true)
   {
     *(buf+i) = 0;
@@ -252,12 +252,12 @@ void dgemat::I()
   assert(allocated||assigned);
 
   //find number of iterations to traverse
-  const std::uint64_t nitr=(nrow < ncol) ? nrow : ncol; 
-  const std::uint64_t nr=nrow+1;
-  std::uint64_t i=0;
+  const long nitr=(nrow < ncol) ? nrow : ncol; 
+  const long nr=nrow+1;
+  long i=0;
  
   //go to end of part with 1's
-  std::uint64_t itr=1;
+  long itr=1;
   while (true)
   {
     *(buf+i) = 1;

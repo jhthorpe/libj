@@ -41,30 +41,30 @@
 class dcore
 {
 private:
-  double*           buf; 	//pointer to start of memory
-  double*          next;	//next free element
-  std::uint64_t     len;	//number of elements in array
-  std::uint64_t   navbl;	//number of free elements
-  bool        allocated;	//bool for if class is allocated
+  double*           buf; 			//pointer to start of memory
+  double*          next;			//next free element
+  long              len;			//number of elements in array
+  long            navbl;			//number of free elements
+  bool        allocated;			//bool for if class is allocated
 
 public:
   //initialization/destructors
-  dcore();		//constructor
-  dcore(std::uint64_t n); //constructor and allocator
- ~dcore();		//destructor
+  dcore();					//constructor
+  dcore(long n); 				//constructor and allocator
+ ~dcore();					//destructor
 
   //Operator overloading
-  double& operator() (const std::uint64_t i); 	 //reference elem i
-  double operator() (const std::uint64_t i) const; //value of elem i
+  double& operator() (const long i); 	 	//reference elem i
+  double operator() (const long i) const; 	//value of elem i
   
   //Class functions
-  void allocate(const std::uint64_t n);
+  void allocate(const long n);
   void deallocate();
-  std::uint64_t size() const;			//returns num elements
-  std::uint64_t nfree() const;			//number of free elm
+  long size() const;				//returns num elements
+  long nfree() const;				//number of free elm
   void info() const;				//prints info
-  double* checkout (const std::uint64_t n);	//checks out n elements
-  double* remove   (const std::uint64_t n);	//checks out n elements
+  double* checkout (const long n);		//checks out n elements
+  double* remove   (const long n);		//checks out n elements
   
 };
 

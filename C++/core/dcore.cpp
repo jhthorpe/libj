@@ -14,7 +14,7 @@ dcore::dcore() : len{0}, allocated{false}
 {
 }
 
-dcore::dcore(const std::uint64_t n) 
+dcore::dcore(const long n) 
 {
   allocate(n);
 }
@@ -37,9 +37,9 @@ dcore::~dcore()
 
   const uint64_t	: n, number of elements to allocate 
 -------------------------------------------------------*/
-void dcore::allocate(const std::uint64_t n)
+void dcore::allocate(const long n)
 {
-  const std::uint64_t mm=std::numeric_limits<std::uint64_t>::max();
+  const long mm=std::numeric_limits<long>::max();
   if (!allocated && n > 1 && n <= mm) 
   {
     buf = (double*) malloc(n*sizeof(double));
@@ -94,8 +94,8 @@ void dcore::info() const
   if (allocated)
   {
     printf("dcore has \n");
-    printf("%llu elements \n",len);
-    printf("%llu free elements \n",navbl);
+    printf("%ld elements \n",len);
+    printf("%ld free elements \n",navbl);
     printf("buffer begins at %p \n",buf);
     printf("next element  at %p \n",next);
   } else {
@@ -108,13 +108,13 @@ void dcore::info() const
   size()
 	- returns the size of the array
 -------------------------------------------------------*/
-std::uint64_t dcore::size() const {return len;}
+long dcore::size() const {return len;}
 
 /*-------------------------------------------------------
   nfree()
 	- returns the size of number of free elements
 -------------------------------------------------------*/
-std::uint64_t dcore::nfree() const {return navbl;}
+long dcore::nfree() const {return navbl;}
 
 /*-------------------------------------------------------
   checkout(const uint64_t n) 
@@ -123,7 +123,7 @@ std::uint64_t dcore::nfree() const {return navbl;}
 
   const uint64_t		: n, number of elements 
 -------------------------------------------------------*/
-double* dcore::checkout(const std::uint64_t n)
+double* dcore::checkout(const long n)
 {
   if (allocated) 
   {
@@ -149,7 +149,7 @@ double* dcore::checkout(const std::uint64_t n)
 
   const uint64_t		: n, number of elements 
 -------------------------------------------------------*/
-double* dcore::remove(const std::uint64_t n)
+double* dcore::remove(const long n)
 {
   if (allocated) 
   {
@@ -171,12 +171,12 @@ double* dcore::remove(const std::uint64_t n)
   () accessing 
   const uint64_t		: i, number of elements 
 -------------------------------------------------------*/
-double& dcore::operator() (const std::uint64_t i)
+double& dcore::operator() (const long i)
 {
   return(*(buf+i));
 }
 
-double dcore::operator() (const std::uint64_t i) const
+double dcore::operator() (const long i) const
 {
   return (*(buf+i));
 }

@@ -46,30 +46,30 @@ class dvec
 {
   private:
   double*           buf;		//pointer to start of memory
-  std::uint64_t     len;		//number of elements
+  long              len;		//number of elements
   bool        allocated;                //is allocated
   bool         assigned;                //is assigned
 
   public:
   //initialization/destructors
   dvec();					//empty constructor
-  dvec(const std::uint64_t n);			//construct with n elements
-  dvec(const std::uint64_t n, double* ptr);	//construct with n elements
+  dvec(const long n);				//construct with n elements
+  dvec(const long n, double* ptr);		//construct with n elements
  ~dvec();					//destructor 
 
   //Operator overloading
-  double& operator() (const std::uint64_t i);	 //ref elm i
-  double operator() (const std::uint64_t i) const; //const elm i
+  double& operator() (const long i);	 	//ref elm i
+  double operator() (const long i) const; 	//const elm i
 
   //Class functions
-  void allocate(const std::uint64_t n);			//allocate memory 
-  void deallocate();					//deallocate memory
-  void assign(const std::uint64_t n, double* ptr);	//assign to memory
-  void unassign();					//unassign to memory
-  std::uint64_t size() const;				//return length
-  void info() const;					//print info
-  void print() const;					//prints the elements of the vector
-  void zero();						//zeros the vector
+  void allocate(const long n);			//allocate memory 
+  void deallocate();				//deallocate memory
+  void assign(const long n, double* ptr);	//assign to memory
+  void unassign();				//unassign to memory
+  long size() const;				//return length
+  void info() const;				//print info
+  void print() const;				//prints the elements of the vector
+  void zero();					//zeros the vector
 };
 
 #endif
