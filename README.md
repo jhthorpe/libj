@@ -1,2 +1,2 @@
 # jlib
-Library for useful things in Fortran
+Library for useful things in Fortran and C++
