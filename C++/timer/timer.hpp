@@ -6,7 +6,7 @@
 #include <chrono> // for std::chrono functions
 
  
-class timer
+class Timer
 {
 private:
 	// Type aliases to make accessing nested type easier
@@ -16,7 +16,7 @@ private:
 	std::chrono::time_point<clock_t> m_beg;
  
 public:
-	timer(); 
+	Timer(); 
 	void reset();
 	double elapsed() const;
 };

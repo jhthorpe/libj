@@ -1,0 +1,4 @@
+#define DOUBLE_ALIGN 128
+#define INT_ALIGN 32
+#define FLOAT_ALIGN 32
+#define LONG_ALIGN 32

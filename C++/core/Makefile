@@ -1,8 +1,7 @@
 include ../make.config
 
-all : $(incdir)/dcore.hpp $(objdir)/dcore.o 
+all : $(incdir)/core.hpp $(objdir)/core.o 
 
-$(objdir)/dcore.o $(incdir)/dcore.hpp: dcore.cpp dcore.hpp
-	$(CPP) $(CPPFLAGS) -c dcore.cpp -o $(objdir)/dcore.o 
-	cp dcore.hpp $(incdir)/dcore.hpp
-
+$(objdir)/core.o $(incdir)/core.hpp: core.cpp core.hpp
+	$(CPP) $(CPPFLAGS) -c core.cpp -o $(objdir)/core.o 
+	cp core.hpp $(incdir)/core.hpp

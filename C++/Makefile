@@ -1,7 +1,9 @@
 SHELL:=/bin/bash
 include make.config
 
-dirs := core array fsys
+dirs := core array simd fsys linal timer
+lib := $(libdir)/libj.a
+
 
 all : 
 	if [ ! -d $(objdir) ]; then mkdir -p $(objdir); fi
@@ -15,7 +17,13 @@ all :
 			fi; \
 		fi; \
 	done 
+	$(MAKE) $(lib)
+
+
+$(lib): $(objdir)/*.o
+	$(LC) $(LCFLAGS) $(libdir)/libj.a $(objdir)/*.o 
+	cp ./inc/libj.hpp $(incdir)
 
 clean:
-	rm $(objdir)/*.o $(incdir)/*.hpp
+	-rm $(objdir)/*.o $(incdir)/*.hpp $(libdir)/libj.a
  
