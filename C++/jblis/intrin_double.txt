@@ -1,0 +1,127 @@
+/* A useful list of intel intrinsics for doubles*/
+
+//SSE
+
+//SSE2
+
+/*		AVX		*/
+CPUID Flags: AVX
+__m256d _mm256_loadu_pd (double const * mem_addr)
+	dst[255:0] := MEM[mem_addr+255:mem_addr]
+	dst[MAX:256] := 0
+
+void _mm256_storeu_pd (double * mem_addr, __m256d a)
+	MEM[mem_addr+255:mem_addr] := a[255:0]
+
+__m256d _mm256_broadcast_sd (double const * mem_addr)
+	tmp[63:0] := MEM[mem_addr+63:mem_addr]
+	FOR j := 0 to 3
+		i := j*64
+		dst[i+63:i] := tmp[63:0]
+	ENDFOR
+	dst[MAX:256] := 0
+
+__m256d _mm256_setzero_pd (void)
+	dst[MAX:0] := 0
+
+
+__m256d _mm256_hadd_pd (__m256d a, __m256d b)
+	dst[63:0] := a[127:64] + a[63:0]
+	dst[127:64] := b[127:64] + b[63:0]
+	dst[191:128] := a[255:192] + a[191:128]
+	dst[255:192] := b[255:192] + b[191:128]
+	dst[MAX:256] := 0
+
+
+__m256d _mm256_add_pd (__m256d a, __m256d b)
+	FOR j := 0 to 3
+		i := j*64
+		dst[i+63:i] := a[i+63:i] + b[i+63:i]
+	ENDFOR
+	dst[MAX:256] := 0
+
+__m256d _mm256_div_pd (__m256d a, __m256d b)
+	FOR j := 0 to 3
+		i := 64*j
+		dst[i+63:i] := a[i+63:i] / b[i+63:i]
+	ENDFOR
+	dst[MAX:256] := 0
+
+__m256d _mm256_mul_pd (__m256d a, __m256d b)
+	FOR j := 0 to 3
+		i := j*64
+		dst[i+63:i] := a[i+63:i] * b[i+63:i]
+	ENDFOR
+	dst[MAX:256] := 0
+
+__m256d _mm256_sub_pd (__m256d a, __m256d b)
+	FOR j := 0 to 3
+		i := j*64
+		dst[i+63:i] := a[i+63:i] - b[i+63:i]
+	ENDFOR
+	dst[MAX:256] := 0
+
+__m256d _mm256_sqrt_pd (__m256d a)
+	FOR j := 0 to 3
+		i := j*64
+		dst[i+63:i] := SQRT(a[i+63:i])
+	ENDFOR
+	dst[MAX:256] := 0
+
+__m256d _mm256_max_pd (__m256d a, __m256d b)
+	FOR j := 0 to 3
+		i := j*64
+		dst[i+63:i] := MAX(a[i+63:i], b[i+63:i])
+	ENDFOR
+	dst[MAX:256] := 0
+
+__m256d _mm256_min_pd (__m256d a, __m256d b)
+	FOR j := 0 to 3
+		i := j*64
+		dst[i+63:i] := MIN(a[i+63:i], b[i+63:i])
+	ENDFOR
+	dst[MAX:256] := 0
+
+__m256d _mm256_cmp_pd (__m256d a, __m256d b, const int imm8)
+	FOR j := 0 to 3
+		i := j*64
+		dst[i+63:i] := ( a[i+63:i] OP b[i+63:i] ) ? 0xFFFFFFFFFFFFFFFF : 0
+	ENDFOR
+	dst[MAX:256] := 0
+
+
+//AVX2
+
+
+//FMA
+CPUID Flags: FMA
+__m256d _mm256_fmadd_pd (__m256d a, __m256d b, __m256d c)
+	FOR j := 0 to 3
+		i := j*64
+		dst[i+63:i] := (a[i+63:i] * b[i+63:i]) + c[i+63:i]
+	ENDFOR
+	dst[MAX:256] := 0
+
+
+//AVX-512
+CPUID Flags: AVX512F
+__m512d _mm512_loadu_pd (void const* mem_addr)
+	dst[511:0] := MEM[mem_addr+511:mem_addr]
+	dst[MAX:512] := 0
+
+void _mm512_storeu_pd (void* mem_addr, __m512d a)
+	MEM[mem_addr+511:mem_addr] := a[511:0]
+
+__m512d _mm512_add_pd (__m512d a, __m512d b)
+	FOR j := 0 to 7
+		i := j*64
+		i := j*64
+	ENDFOR
+	dst[MAX:512] := 0
+
+__m512d _mm512_fmadd_pd (__m512d a, __m512d b, __m512d c)
+	FOR j := 0 to 7
+		i := j*64
+		dst[i+63:i] := (a[i+63:i] * b[i+63:i]) + c[i+63:i]
+	ENDFOR
+	dst[MAX:512] := 0
