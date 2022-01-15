@@ -57,10 +57,10 @@ extern "C" {
   Here, a,b,c indicate scalars, x,y indicate constants,m ^T indicates a transpose
 
   CURRENTLY SUPPORTED
+  zerov		x = 0			Set values of x to zero
 
 
   COMMING SOON
-  zerov		x = 0			Set values of x to zero
   setv		x = a			set values of x to const
   scalv		x = a*x			scale values of x by const
   copyv		y = x 			copy values of x to y
@@ -93,8 +93,8 @@ X          double*       N           elements to zero
 Supported Types
 double		
 -----------------------------------------------------*/
-void libj_dzerov(const long N, double* X);
-void libj_dzerov_p(const long N, double* X);
+void libj_dzerov(const long N, double* X, const long XINC);
+void libj_dzerov_p(const long N, double* X, const long XINC);
 
 
 #ifdef __cplusplus

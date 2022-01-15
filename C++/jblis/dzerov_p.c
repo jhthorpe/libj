@@ -28,12 +28,13 @@ void libj_dzerov_p_kernal(double* X_ptr)
 #endif
 
 //Open MP code
-#if defined (OMP)
 #define OMP_CHUNK 1
-void libj_dzerov_p(const long N, double* X)
+void libj_dzerov_p(const long N, double* X, const long XINC)
 {
 
-//  #pragma omp parallel for schedule(static,OMP_CHUNK) if (N > OMP_CHUNK*16)
+  //Stride == 1 gets good code
+  if (XINC == 1) 
+  {
   #pragma omp parallel for schedule(dynamic,OMP_CHUNK) //if (N > OMP_CHUNK)
   {
     for (long i=0;i<N-UNROLL;i+=UNROLL)
@@ -46,24 +47,19 @@ void libj_dzerov_p(const long N, double* X)
   {
     X[i] = (double) 0; 
   }
+  
 
-}
-
-//Non-OMP code
-#else
-void libj_dzerov_p(const long N, double* X)
-{
-  long i;
-  for (i=0;i<N-UNROLL;i+=UNROLL)
-  {
-    libj_dzerov_p_kernal(X+i); 
-  }
-
-  for (;i<N;i++)
-  {
-    X[i] = (double) 0; 
+  //general code for XINC != 1
+  } else {
+    #pragma omp parallel for schedule(dynamic,OMP_CHUNK) //if (N > OMP_CHUNK)
+    {
+      for (long i=0;i<N;i+=XINC)
+      { 
+        X[i] = (double) 0;
+      }
+    }
   }
 
 }
-#endif
+
 
