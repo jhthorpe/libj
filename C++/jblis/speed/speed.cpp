@@ -4,7 +4,7 @@
 #include <vector>
 void run_test(const long size, double* X)
 {
-  libj_dzerov_p(size,X,1);
+  libj_dscalv(size,5,X,1);
 }
 
 int main()

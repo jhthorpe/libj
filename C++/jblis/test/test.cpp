@@ -14,6 +14,8 @@ int main()
   dsetv_test2();
   dsetv_p_test1();
   dsetv_p_test2();
+  dscalv_test1();
+  dscalv_test2();
     
 
   return 0;

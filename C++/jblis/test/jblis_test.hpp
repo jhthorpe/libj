@@ -10,4 +10,6 @@ int dsetv_test1();
 int dsetv_test2();
 int dsetv_p_test1();
 int dsetv_p_test2();
+int dscalv_test1();
+int dscalv_test2();
 

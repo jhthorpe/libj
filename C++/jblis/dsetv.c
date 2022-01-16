@@ -34,14 +34,16 @@ void libj_dsetv(const long N, const double A, double* X, const long XINC)
   //Stride 1 has good code
   if (XINC == 1)
   {
-    for (long i=0;i<N-UNROLL;i+=UNROLL)
-    {
-      libj_setv_kernel(&A,X+i); 
-    }
 
-    for (long i=N-UNROLL;i<N;i++)
+    const long MOD = N % UNROLL;
+    for (long i=0;i<MOD;i++)
     {
       X[i] = (double) A; 
+    }
+    
+    for (long i=MOD;i<N;i+=UNROLL)
+    {
+      libj_setv_kernel(&A,X+i); 
     }
 
   //General XINC does not

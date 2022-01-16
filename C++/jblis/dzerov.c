@@ -34,15 +34,18 @@ void libj_dzerov(const long N, double* X, const long XINC)
   //Stride 1 has good code
   if (XINC == 1)
   {
-    for (long i=0;i<N-UNROLL;i+=UNROLL)
+
+    const long MOD = N % UNROLL;
+    for (long i=0;i<MOD;i++)
+    {
+      X[i] = (double) 0; 
+    }
+    
+    for (long i=MOD;i<N;i+=UNROLL)
     {
       libj_zerov_kernel(X+i); 
     }
 
-    for (long i=N-UNROLL;i<N;i++)
-    {
-      X[i] = (double) 0; 
-    }
 
   //General XINC does not
   } else {

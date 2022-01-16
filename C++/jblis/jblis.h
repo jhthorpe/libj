@@ -60,15 +60,14 @@ extern "C" {
   zerov		x = 0			Set values of x to zero
   setv		x = a			set values of x to const
 
-
   COMMING SOON
   scalv		x = a*x			scale values of x by const
-  copyv		y = x 			copy values of x to y
   scal2v	y = a*x			scale values of x and copy into y
   axpyv		y = y + a*x		add scaled elements of x to y 
   dotv		b = x^T . y		dot product of x and y
   dotxy		b = c*b + a*x^T.y	scale b, scale result of dot x.y
   invertv	y = y^-1		elementwise invert
+  copyv		y = x 			copy values of x to y
 
   //JHT special code
   raxmyv	y = y * a*x^-1		scale x reciprocal elements, multiply y elementwise
@@ -114,6 +113,24 @@ double
 void libj_dsetv(const long N, const double A, double* X, const long XINC);
 void libj_dsetv_p(const long N,const double A, double* X, const long XINC);
 
+/*-----------------------------------------------------
+  scalv 
+ 	scales the elements of X by constant A	
+
+	JHT, January 15, 2022 : created
+
+Paramters
+name       type          size        description
+N          const long  	 1	     number of elements
+A          const double  1	     scalar A
+X          double*       N           elements to zero
+INCX	   const long    1	     increment of X
+
+Supported Types
+double		
+-----------------------------------------------------*/
+void libj_dscalv(const long N, const double A, double* X, const long XINC);
+void libj_dscalv_p(const long N,const double A, double* X, const long XINC);
 
 #ifdef __cplusplus
 }

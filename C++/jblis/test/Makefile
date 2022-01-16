@@ -3,20 +3,14 @@ include ../../make.config
 libj  = $(libdir)/libj.a $(incdir)/libj.hpp
 jblis = $(libdir)/jblis.a $(incdir)/jblis.h
 
-all : test.exe speed.exe 
-#----------------------------------
-# Speed test
-
-speed.exe : speed.o $(libj) $(jblis) 
-	$(CPP) $(CPPFLAGS) speed.o $(libdir)/libj.a $(libdir)/jblis.a -lomp -o speed.exe
-speed.o : speed.cpp 
-	$(CPP) $(CPPFLAGS) -I$(incdir) -c speed.cpp -o speed.o -Xpreprocessor -fopenmp 
+all : test.exe
 
 #----------------------------------
 # tester
 
 test1v = dzerov_test1.o dzerov_test2.o dzerov_p_test1.o dzerov_p_test2.o\
 	dsetv_test1.o dsetv_test2.o dsetv_p_test1.o dsetv_p_test2.o\
+	dscalv_test1.o dscalv_test2.o #dscalv_p_test1.o dscalv_p_test2.o
 
 tests = test.o $(test1v) 
 
@@ -43,6 +37,10 @@ dsetv_p_test1.o : dsetv_p_test1.cpp
 	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dsetv_p_test1.cpp -o dsetv_p_test1.o -Xpreprocessor -fopenmp 
 dsetv_p_test2.o : dsetv_p_test2.cpp 
 	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dsetv_p_test2.cpp -o dsetv_p_test2.o -Xpreprocessor -fopenmp 
+dscalv_test1.o : dscalv_test1.cpp 
+	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dscalv_test1.cpp -o dscalv_test1.o -Xpreprocessor -fopenmp 
+dscalv_test2.o : dscalv_test2.cpp 
+	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dscalv_test2.cpp -o dscalv_test2.o -Xpreprocessor -fopenmp 
 
 #----------------------------------
 # Specific test .o files 
