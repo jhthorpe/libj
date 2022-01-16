@@ -3,18 +3,23 @@
 //tests unit stride
 int dzerov_test1()
 {
+  const double A=0;
+  bool fail = false;
+
   const long N = 100;
   vec<double> X(N);
   X = 1;
+
   libj_dzerov(N,&X[0],1);
-  double sum=0;
+
   for (int i=0;i<N;i++)
   {
-    sum += X(i);
+    if (X(i) != A) {fail = true;break;} 
   }
-  if (sum != 0) 
+
+  if (fail) 
   {
-    printf("dzerov_test1 failed : sum == %lf, not 0 \n",sum);
+    printf("dzerov_test1 failed \n");
     return 1;
   } else {
     printf("dzerov_test1 passed\n"); 

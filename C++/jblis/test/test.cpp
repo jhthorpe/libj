@@ -10,6 +10,10 @@ int main()
   dzerov_test2();
   dzerov_p_test1();
   dzerov_p_test2();
+  dsetv_test1();
+  dsetv_test2();
+  dsetv_p_test1();
+  dsetv_p_test2();
     
 
   return 0;

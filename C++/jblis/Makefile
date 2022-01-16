@@ -2,7 +2,7 @@ include ../make.config
 
 #----------------------------------------
 # LEVEL1V
-level1v = dzerov.o dzerov_p.o
+level1v = dzerov.o dzerov_p.o dsetv.o dsetv_p.o
 
 #----------------------------------------
 # LEVELS
@@ -27,9 +27,12 @@ $(libdir)/jblis.a : $(levels)
 # LEVEL1V objects
 dzerov.o : dzerov.c
 	$(C) $(CFLAGS) -c dzerov.c -o dzerov.o	
-
 dzerov_p.o : dzerov_p.c
 	$(C) $(CFLAGS) -c dzerov_p.c -o dzerov_p.o	
+dsetv.o : dsetv.c
+	$(C) $(CFLAGS) -c dsetv.c -o dsetv.o	
+dsetv_p.o : dsetv_p.c
+	$(C) $(CFLAGS) -c dsetv_p.c -o dsetv_p.o	
 
 #----------------------------------------
 # clean

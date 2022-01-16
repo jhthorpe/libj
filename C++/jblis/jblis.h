@@ -58,10 +58,10 @@ extern "C" {
 
   CURRENTLY SUPPORTED
   zerov		x = 0			Set values of x to zero
+  setv		x = a			set values of x to const
 
 
   COMMING SOON
-  setv		x = a			set values of x to const
   scalv		x = a*x			scale values of x by const
   copyv		y = x 			copy values of x to y
   scal2v	y = a*x			scale values of x and copy into y
@@ -88,13 +88,31 @@ Paramters
 name       type          size        description
 N          const long  	 1	     number of elements
 X          double*       N           elements to zero
-
+INCX	   const long    1	     increment of X
 
 Supported Types
 double		
 -----------------------------------------------------*/
 void libj_dzerov(const long N, double* X, const long XINC);
 void libj_dzerov_p(const long N, double* X, const long XINC);
+
+/*-----------------------------------------------------
+  setv 
+ 	Sets the elements of vector X to constant A	
+
+	JHT, January 15, 2022 : created
+
+Paramters
+name       type          size        description
+N          const long  	 1	     number of elements
+X          double*       N           elements to zero
+INCX	   const long    1	     increment of X
+
+Supported Types
+double		
+-----------------------------------------------------*/
+void libj_dsetv(const long N, const double A, double* X, const long XINC);
+void libj_dsetv_p(const long N,const double A, double* X, const long XINC);
 
 
 #ifdef __cplusplus

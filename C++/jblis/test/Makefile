@@ -15,7 +15,8 @@ speed.o : speed.cpp
 #----------------------------------
 # tester
 
-test1v = dzerov_test1.o dzerov_test2.o dzerov_p_test1.o dzerov_p_test2.o
+test1v = dzerov_test1.o dzerov_test2.o dzerov_p_test1.o dzerov_p_test2.o\
+	dsetv_test1.o dsetv_test2.o dsetv_p_test1.o dsetv_p_test2.o\
 
 tests = test.o $(test1v) 
 
@@ -34,6 +35,14 @@ dzerov_p_test1.o : dzerov_p_test1.cpp
 	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dzerov_p_test1.cpp -o dzerov_p_test1.o -Xpreprocessor -fopenmp 
 dzerov_p_test2.o : dzerov_p_test2.cpp 
 	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dzerov_p_test2.cpp -o dzerov_p_test2.o -Xpreprocessor -fopenmp 
+dsetv_test1.o : dsetv_test1.cpp 
+	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dsetv_test1.cpp -o dsetv_test1.o -Xpreprocessor -fopenmp 
+dsetv_test2.o : dsetv_test2.cpp 
+	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dsetv_test2.cpp -o dsetv_test2.o -Xpreprocessor -fopenmp 
+dsetv_p_test1.o : dsetv_p_test1.cpp 
+	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dsetv_p_test1.cpp -o dsetv_p_test1.o -Xpreprocessor -fopenmp 
+dsetv_p_test2.o : dsetv_p_test2.cpp 
+	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dsetv_p_test2.cpp -o dsetv_p_test2.o -Xpreprocessor -fopenmp 
 
 #----------------------------------
 # Specific test .o files 
