@@ -10,7 +10,7 @@ all : test.exe
 
 test1v = dzerov_test1.o dzerov_test2.o dzerov_p_test1.o dzerov_p_test2.o\
 	dsetv_test1.o dsetv_test2.o dsetv_p_test1.o dsetv_p_test2.o\
-	dscalv_test1.o dscalv_test2.o #dscalv_p_test1.o dscalv_p_test2.o
+	dscalv_test1.o dscalv_test2.o dscalv_p_test1.o dscalv_p_test2.o
 
 tests = test.o $(test1v) 
 
@@ -41,7 +41,10 @@ dscalv_test1.o : dscalv_test1.cpp
 	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dscalv_test1.cpp -o dscalv_test1.o -Xpreprocessor -fopenmp 
 dscalv_test2.o : dscalv_test2.cpp 
 	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dscalv_test2.cpp -o dscalv_test2.o -Xpreprocessor -fopenmp 
-
+dscalv_p_test1.o : dscalv_p_test1.cpp 
+	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dscalv_p_test1.cpp -o dscalv_p_test1.o -Xpreprocessor -fopenmp 
+dscalv_p_test2.o : dscalv_p_test2.cpp 
+	$(CPP) $(CPPFLAGS) -I$(incdir) -I.. -c dscalv_p_test2.cpp -o dscalv_p_test2.o -Xpreprocessor -fopenmp 
 #----------------------------------
 # Specific test .o files 
 clean :

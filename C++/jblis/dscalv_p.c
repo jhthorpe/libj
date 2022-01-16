@@ -4,7 +4,7 @@
 //Kernal with AVX
 #if defined (AVX)
 #define UNROLL 16
-void libj_scalv_kernel(const double* A, double* X_ptr)
+void libj_scalv_p_kernel(const double* A, double* X_ptr)
 {
   const __m256d a_0_3 = _mm256_broadcast_sd(A); 
   __m256d x_0_3   = _mm256_loadu_pd(X_ptr+0);  
@@ -25,7 +25,7 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
 
 /*
 #define UNROLL 32
-void libj_scalv_kernel(const double* A, double* X_ptr)
+void libj_scalv_p_kernel(const double* A, double* X_ptr)
 {
   const __m256d a_0_3 = _mm256_broadcast_sd(A); 
   __m256d x_0_3   = _mm256_loadu_pd(X_ptr+0);  
@@ -59,7 +59,7 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
 
 /*
 #define UNROLL 64
-void libj_scalv_kernel(const double* A, double* X_ptr)
+void libj_scalv_p_kernel(const double* A, double* X_ptr)
 {
   const __m256d a_0_3 = _mm256_broadcast_sd(A); 
   __m256d x_0_3   = _mm256_loadu_pd(X_ptr+0);  
@@ -117,7 +117,7 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
 //Kernal if no AVX
 #else
 #define UNROLL 6
-void libj_scalv_kernel(const double* A, double* X_ptr)
+void libj_scalv_p_kernel(const double* A, double* X_ptr)
 {
   X_ptr[0] *= A[0];
   X_ptr[1] *= A[0];
@@ -129,7 +129,8 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
 #endif
 
 //Main function
-void libj_dscalv(const long N, const double A, double* X, const long XINC)
+#define OMP_CHUNK 1
+void libj_dscalv_p(const long N, const double A, double* X, const long XINC)
 {
 
   //Stride 1 has good code
@@ -141,16 +142,22 @@ void libj_dscalv(const long N, const double A, double* X, const long XINC)
       X[i] *= A; 
     }
     
-    for (long i=MOD;i<N;i+=UNROLL)
+    #pragma omp parallel for schedule(dynamic,OMP_CHUNK)
     {
-      libj_scalv_kernel(&A,X+i); 
+      for (long i=MOD;i<N;i+=UNROLL)
+      {
+        libj_scalv_p_kernel(&A,X+i); 
+      }
     }
 
   //General XINC does not
   } else {
-    for (long i=0;i<N;i+=XINC)
+    #pragma omp parallel for schedule(dynamic,OMP_CHUNK)
     {
-      X[i] *= A; 
+      for (long i=0;i<N;i+=XINC)
+      {
+        X[i] *= A; 
+      }
     }
   }
 

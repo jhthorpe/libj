@@ -6,6 +6,7 @@
 #define UNROLL 16
 void libj_scalv_kernel(const double* A, double* X_ptr)
 {
+  _mm_prefetch(X_ptr+16,_MM_HINT_NTA);
   const __m256d a_0_3 = _mm256_broadcast_sd(A); 
   __m256d x_0_3   = _mm256_loadu_pd(X_ptr+0);  
   __m256d x_4_7   = _mm256_loadu_pd(X_ptr+4);  

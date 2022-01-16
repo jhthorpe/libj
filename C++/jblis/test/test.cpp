@@ -6,6 +6,7 @@ int main()
 {
   
   //call L1 tests
+  pritnf("LEVEL1V TESTS\n")
   dzerov_test1();
   dzerov_test2();
   dzerov_p_test1();

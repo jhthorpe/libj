@@ -2,7 +2,9 @@
 #include <stdio.h>
 
 //Kernal with AVX
+/*
 #if defined (AVX)
+
 #define UNROLL 16
 void libj_scalv_kernel(const double* A, double* X_ptr)
 {
@@ -22,11 +24,13 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
   _mm256_storeu_pd(X_ptr+8 ,x_8_11); 
   _mm256_storeu_pd(X_ptr+12,x_12_15); 
 }
+*/
 
 /*
 #define UNROLL 32
 void libj_scalv_kernel(const double* A, double* X_ptr)
 {
+  _mm_prefetch(X_ptr+65,__MM_HINT_ET1);
   const __m256d a_0_3 = _mm256_broadcast_sd(A); 
   __m256d x_0_3   = _mm256_loadu_pd(X_ptr+0);  
   __m256d x_4_7   = _mm256_loadu_pd(X_ptr+4);  
@@ -115,7 +119,7 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
 }
 */
 //Kernal if no AVX
-#else
+//#else
 #define UNROLL 6
 void libj_scalv_kernel(const double* A, double* X_ptr)
 {
@@ -126,7 +130,7 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
   X_ptr[4] *= A[0]; 
   X_ptr[5] *= A[0]; 
 }
-#endif
+//#endif
 
 //Main function
 void libj_dscalv(const long N, const double A, double* X, const long XINC)

@@ -3,6 +3,7 @@
 
 //Kernal with AVX
 #if defined (AVX)
+/*
 #define UNROLL 16
 void libj_scalv_kernel(const double* A, double* X_ptr)
 {
@@ -22,6 +23,7 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
   _mm256_storeu_pd(X_ptr+8 ,x_8_11); 
   _mm256_storeu_pd(X_ptr+12,x_12_15); 
 }
+*/
 
 /*
 #define UNROLL 32
@@ -57,7 +59,6 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
 }
 */
 
-/*
 #define UNROLL 64
 void libj_scalv_kernel(const double* A, double* X_ptr)
 {
@@ -113,7 +114,6 @@ void libj_scalv_kernel(const double* A, double* X_ptr)
   _mm256_storeu_pd(X_ptr+56,x_56_59); 
   _mm256_storeu_pd(X_ptr+60,x_60_63); 
 }
-*/
 //Kernal if no AVX
 #else
 #define UNROLL 6

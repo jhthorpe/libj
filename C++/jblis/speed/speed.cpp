@@ -28,13 +28,14 @@ int main()
     //dry run 
     run_test(size,&X[0]);
     
-    start = clock();
+    clocks = 0;
     for (int test=0;test<ntests;test++)
     {
+        start = clock();
         run_test(size,&X[0]);
+        end = clock();
+        clocks += end - start;
     }
-    end = clock();
-    clocks = end - start;
     clocks_div_size = (double) clocks / ((double) size * ntests);
 
     //report results 

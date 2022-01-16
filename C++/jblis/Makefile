@@ -2,7 +2,8 @@ include ../make.config
 
 #----------------------------------------
 # LEVEL1V
-level1v = dzerov.o dzerov_p.o dsetv.o dsetv_p.o dscalv.o
+level1v = dzerov.o dzerov_p.o dsetv.o dsetv_p.o\
+	dscalv.o dscalv_p.o
 
 #----------------------------------------
 # LEVELS
@@ -35,6 +36,8 @@ dsetv_p.o : dsetv_p.c
 	$(C) $(CFLAGS) -c dsetv_p.c -o dsetv_p.o	
 dscalv.o : dscalv.c
 	$(C) $(CFLAGS) -c dscalv.c -o dscalv.o	
+dscalv_p.o : dscalv_p.c
+	$(C) $(CFLAGS) -c dscalv_p.c -o dscalv_p.o	
 
 #----------------------------------------
 # clean
