@@ -61,8 +61,8 @@ struct Stringvec
   void grow() 
   {
     char* newbuf = (char*) malloc(sizeof(char)*capacity*2*APRINT_LEN);
-    std::memmove(newbuf,buffer,sizeof(char)*capacity*APRINT_LEN);
-    std::memset(newbuf+size*APRINT_LEN,(char)0,sizeof(char)*capacity*APRINT_LEN);
+    memmove(newbuf,buffer,sizeof(char)*capacity*APRINT_LEN);
+    memset(newbuf+size*APRINT_LEN,(char)0,sizeof(char)*capacity*APRINT_LEN);
     capacity *= 2;
     free(buffer);
     buffer = newbuf;
@@ -72,14 +72,14 @@ struct Stringvec
   void push_back(const char* string)
   {
     if (size+1 > capacity) {grow();}
-    std::strcpy(buffer+size*APRINT_LEN,string);
+    strcpy(buffer+size*APRINT_LEN,string);
     size++;
   }
 
   //clear
   void clear()
   {
-    std::memset(buffer,(char)0,sizeof(char)*size*APRINT_LEN); 
+    memset(buffer,(char)0,sizeof(char)*size*APRINT_LEN); 
     size = 0;
   }
 
@@ -112,8 +112,8 @@ struct Printbuffer
   Printbuffer()
   {
     idx = 0;
-    std::memset(buffer,(char)0,sizeof(char)*APRINT_LEN);
-    std::memset(stemp,(char)0,sizeof(char)*APRINT_LEN);
+    memset(buffer,(char)0,sizeof(char)*APRINT_LEN);
+    memset(stemp,(char)0,sizeof(char)*APRINT_LEN);
   }
 
   //Add a formatted string with variable input data
@@ -141,8 +141,8 @@ struct Printbuffer
       int len = strlen(stemp);
       if (idx + len < APRINT_LEN)
       {
-        std::memmove(&buffer[idx],stemp,sizeof(char)*len);//move stemp elements
-        std::memset(stemp,(char)0,sizeof(char)*len);//clear stemp elements
+        memmove(&buffer[idx],stemp,sizeof(char)*len);//move stemp elements
+        memset(stemp,(char)0,sizeof(char)*len);//clear stemp elements
         idx += len;
       } else {
         printf("\nERROR ERROR ERROR\n");
@@ -175,8 +175,8 @@ struct Printbuffer
       int len = strlen(stemp);
       if (idx + len < APRINT_LEN)
       {
-        std::memmove(&buffer[idx],stemp,sizeof(char)*len);//move stemp elements
-        std::memset(stemp,(char)0,sizeof(char)*len);//clear stemp elements
+        memmove(&buffer[idx],stemp,sizeof(char)*len);//move stemp elements
+        memset(stemp,(char)0,sizeof(char)*len);//clear stemp elements
         idx += len;
       } else {
         printf("\nERROR ERROR ERROR\n");
@@ -199,14 +199,7 @@ struct Printbuffer
     }
   }
 
-  //add and store, just a string
-  void addstore(const char* string)
-  {
-    add(string);
-    store();
-  }
-
-  //Add and store, but formatted
+  //Add and store
   void addstore(const char* fstring, ...)
   {
     va_list arg;
@@ -219,7 +212,7 @@ struct Printbuffer
   //clear buffer
   void clear()
   {
-    std::memset(buffer,(char)0,sizeof(char)*idx);
+    memset(buffer,(char)0,sizeof(char)*idx);
     idx = 0;
   }
 
@@ -239,12 +232,14 @@ struct Printbuffer
     }
   }
 
+  //print info
   void info() const
   {
     printf("\nPrintbuffer has %d entries\n",vec.size);
     printf("Entry max size is %d\n",APRINT_LEN);
   }
 
+  //print specific message
   void print(const int message) const
   {
     printf("%s",vec[message]);
