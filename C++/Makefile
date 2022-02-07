@@ -1,7 +1,7 @@
 SHELL:=/bin/bash
 include make.config
 
-dirs := core array simd fsys linal timer
+dirs := core array simd fsys linal timer jblis para
 lib := $(libdir)/libj.a
 
 
@@ -23,7 +23,8 @@ all :
 $(lib): $(objdir)/*.o
 	$(LC) $(LCFLAGS) $(libdir)/libj.a $(objdir)/*.o 
 	cp ./inc/libj.hpp $(incdir)
+	cp ./inc/libjdef.h $(incdir)
 
 clean:
-	-rm $(objdir)/*.o $(incdir)/*.hpp $(libdir)/libj.a
+	-rm $(objdir)/*.o $(incdir)/*.hpp $(incdir)/*.h $(libdir)/libj.a
  

@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# Configure script for LIBJ
+# 	JHT, Febuary 7, 2022 : created
+#
+
+setup() {
+  rm -f libjdef.h
+}
+
+setup_mpi() {
+  if [ $1 -eq 1 ]; then
+    echo "#define LIBJ_MPI 1" >> libjdef.h
+  fi
+}
+
+setup_omp() {
+  if [ $1 -eq 1 ]; then
+    echo "#if defined (_OPENMP)" >> libjdef.h
+    echo "  #define LIBJ_OMP 1" >> libjdef.h
+    echo "#endif" >> libjdef.h
+  fi
+}
+
+echo "Configuring LIBJ"
+echo "Use OpenMPI (y/n)?"
+read user_in
+if [ "$user_in" == "y" ]; then
+  use_mpi=1
+  echo "will compile with OpenMPI"
+else
+  use_mpi=0
+  echo "will not compile with OpenMPI"
+fi
+
+echo "Use OMP (y/n)?"
+read $user_in
+if [ "$user_in" == "y" ]; then
+  use_omp=1
+  echo "will compile with OpenMP"
+else
+  use_omp=0
+  echo "will not compile with OpenMP"
+fi 
+
+setup
+setup_mpi $use_mpi
+setup_omp $use_omp
