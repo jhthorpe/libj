@@ -1,10 +1,10 @@
 include ../make.config
 #----------------------------------------
 # Lists
-incs := pworld.hpp pprint.hpp 
-objs := pprint.o
+incs := pworld.hpp pprint.hpp strvec.hpp pfile.hpp 
+objs := pprint.o pfile.o
 
-all : $(incs) $(objs) $(incdir)/para.hpp $(libdir)/para.a example2.exe 
+all : para.hpp $(incdir)/para.hpp $(incs) $(objs) $(libdir)/para.a example2.exe 
 
 clean :
 	rm -f para.hpp
@@ -26,8 +26,13 @@ para.hpp : $(incs)
 
 #----------------------------------------
 # PPRINT
-pprint.o : pprint.cpp pprint.hpp
+pprint.o : pprint.cpp pprint.hpp $(incdir)/libjdef.h
 	$(CPP) $(CPPFLAGS) -c pprint.cpp -I$(incdir) 
+
+#----------------------------------------
+# PFILE
+pfile.o : pfile.cpp pfile.hpp $(incdir)/libjdef.h
+	$(CPP) $(CPPFLAGS) -c pfile.cpp -I$(incdir) 
 
 #----------------------------------------
 # Tests 

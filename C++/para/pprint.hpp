@@ -39,7 +39,6 @@ buf.reset();			 //reset buffer and stored messages
 #include <stdarg.h>
 
 #include "libjdef.h"
-#include "pworld.hpp"
 
 #define PPRINT_RES 10
 #define PPRINT_LEN 1024 

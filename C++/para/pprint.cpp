@@ -6,7 +6,7 @@
   .cpp file for pprint, which stores (potentially parallel)
   print buffers
 --------------------------------------------------------*/
-#include "pprint.hpp"
+#include "para.hpp"
 
 void Pprint::print_all(const Pworld& pworld) const
 {
