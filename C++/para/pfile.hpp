@@ -4,6 +4,40 @@
  *
  *  .hpp file for Pfile, which handles a (possibly parallel) filesystem
  *  Also contains the PFIO struct, which 
+ *
+ * In the following, there are two kinds of member functions. Those that
+ *   take in an ``external'' name, which is converted into an internal 
+ *   id, and those that take just the internal id. 
+ *
+ *   The former are marked with an "s" at the start of the function name
+ *   The latter are more efficient and should be used in general
+ *
+ * USAGE
+ * ---------------
+ * //To add files
+ * const int fid = pfile.sadd(pworld,"filename"); 
+ *
+ * //To find the internal file id
+ * const int fid = pfile.get_fid(pworld,"filename");
+ *
+ * //To remove a file from the list, but NOT delete it
+ * stat = pfile.sremove(pworld,"filename"); 
+ * stat = pfile.remove(file_id);
+ *
+ * //To open or close a file
+ * stat = pfile.sopen(pworld,"filename","w+b");
+ * stat = pfile.open(fid,"w+b"); 
+ * stat = pfile.sclose(pworld,"filename");
+ * stat = pfile.close(fid);
+ * stat = close_all();
+ *
+ * //To add a file and open it
+ * //Note that fid >= 0 is the file_id, and fid < 0 is error message
+ * const int fid = pfile.saddopen(pworld,"filename","w+b");
+ *
+ * //to remove a file from both the filesystem and disk
+ * stat = pfile.serase(pworld,"filename");
+ * stat = pfile.erase(file_id);
 ------------------------------------------------------------------------*/
 
 /*
@@ -28,10 +62,11 @@ struct Pfio
 #include "libjdef.h"
 
 //Error message integers
-#define PFILE_ERR_NULL 1 //for if opening file gave null pointer
-#define PFILE_ERR_OPEN 2 //for if file was already open
-#define PFILE_ERR_CLOSE 3 //for if file close failed
-#define PFILE_ERR_ERASE 4 //for if file erase failed
+#define PFILE_ERR_NULL -1 //for if opening file gave null pointer
+#define PFILE_ERR_OPEN -2 //for if file was already open
+#define PFILE_ERR_CLOSE -3 //for if file close failed
+#define PFILE_ERR_ERASE -4 //for if file erase failed
+#define PFILE_ERR_FLUSH -5 //could not flush file io buffer
 #define PFILE_RES 50
 
 class Pfile
@@ -50,27 +85,36 @@ class Pfile
   ~Pfile();
 
   //Add a file
-  int add(const Pworld& pworld, std::string fname);
-  int sadd(const std::string& fname); //add if we already know name/loc
+  // Note that both sadd and add return the file id (or -1 on error)
+  int sadd(const Pworld& pworld, std::string fname);
+  int add(const std::string& fname); //add if we already know name/loc
 
   //Remove a file
-  int remove(const Pworld& pworld, std::string fname);
-  int sremove(const int loc); //already have name/loc
+  int sremove(const Pworld& pworld, std::string fname);
+  int remove(const int fid); //already have name/loc
 
   //Open a file
-  int open(const Pworld& pworld, std::string fname, const std::string fstat);
-  int sopen(const int loc, const std::string& fstat); 
-  int addopen(const Pworld& pworld, std::string fname, const std::string fstat);
+  //saddopen returns the internal file id on successful exit, and error on not 
+  int sopen(const Pworld& pworld, std::string fname, const std::string fstat);
+  int saddopen(const Pworld& pworld, std::string fname, const std::string fstat);
+  int open(const int fid, const std::string& fstat); 
   
   //Close a file
-  int close(const Pworld& pworld, std::string fname);
-  int sclose(const int loc);
+  int sclose(const Pworld& pworld, std::string fname);
+  int close(const int fid);
   int close_all();
 
   //erase files -- close, delete, remove
-  int erase(const Pworld& pworld, std::string fname);
-  int serase(const int loc);
+  int serase(const Pworld& pworld, std::string fname);
+  int erase(const int fid);
   int erase_all(); 
+
+  //Flush file buffer
+  int sflush(const Pworld& pworld, std::string fname) const;
+  int flush(const int fid) const;
+
+  //Get file id within fsys
+  int get_fid(const Pworld& pworld, std::string fname) const;
 
   //locate file id from string
   int file_loc(const std::string fname) const;
@@ -80,6 +124,17 @@ class Pfile
   
   //info
   void info(const Pworld& pworld, Pprint& pprint) const;
+
+  //write : needs internal file id!!
+  void write(const int fid, const long pos, const void* data,
+             const size_t size, const size_t num);
+
+  //read : needs internal file id!!
+  void read(const int fid, const long pos, void* data,
+            const size_t size, const size_t num);
+
+  //seek : needs internal file id!!
+  void seek(const int fid, const long pos);
 
   //save filesystem info
   //recover filesystem info

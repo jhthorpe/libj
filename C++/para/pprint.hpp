@@ -70,6 +70,7 @@ struct Stringvec
     {
       size = 0;
       capacity = PPRINT_RES;
+      memset(buffer,(char)0,sizeof(char)*capacity*PPRINT_LEN);
     } else {
       printf("\nERROR ERROR ERROR\n");
       printf("Stringvec::init could not malloc buffer\n");
