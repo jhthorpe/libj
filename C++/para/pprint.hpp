@@ -145,11 +145,13 @@ struct Pprint
     idx = 0;
     memset(buffer,(char)0,sizeof(char)*PPRINT_LEN);
     memset(stemp,(char)0,sizeof(char)*PPRINT_LEN);
+    pbuffer = NULL;
   }
 
+  //Destructor
   ~Pprint()
   {
-        
+    if (pbuffer != NULL) free(pbuffer);        
   }
 
   //Initialize with Pworld
@@ -179,7 +181,8 @@ struct Pprint
     int stat = 0;
     if (pworld.mpi_ismaster)
     {
-      free(pbuffer);
+      if (pbuffer != NULL) free(pbuffer);
+      pbuffer = NULL;
     }
     return stat;
   }

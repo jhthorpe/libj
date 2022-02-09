@@ -33,6 +33,7 @@ struct Pworld
   public:
   
   //Basic Data
+  int status;
   int mpi_num_tasks;
   int mpi_task_id;
   int omp_num_threads;

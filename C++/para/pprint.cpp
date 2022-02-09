@@ -33,8 +33,8 @@ void Pprint::print_all(const Pworld& pworld) const
         printf("%s",pbuffer+PPRINT_LEN*task);
       }
 
-    //clean the message buffer
-    memset(pbuffer,(char)0,sizeof(char)*PPRINT_LEN*pworld.mpi_num_tasks);
+      //clean the message buffer
+      memset(pbuffer,(char)0,sizeof(char)*PPRINT_LEN*pworld.mpi_num_tasks);
     }
 
   } 
@@ -47,6 +47,7 @@ void Pprint::print_all(const Pworld& pworld) const
     memset(pbuffer,(char)0,sizeof(char)*PPRINT_LEN*pworld.mpi_num_tasks);
   }
   #endif
+
 }
 
 //-------------------------------------------------------------------
