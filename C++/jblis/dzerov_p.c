@@ -42,22 +42,18 @@ void libj_dzerov_p(const long N, double* X, const long XINC)
     }
 
     #pragma omp parallel for schedule(dynamic,OMP_CHUNK) //if (N > OMP_CHUNK)
+    for (long i=MOD;i<N;i+=UNROLL)
     {
-      for (long i=MOD;i<N;i+=UNROLL)
-      {
-        libj_dzerov_p_kernel(X+i); 
-      }
+      libj_dzerov_p_kernel(X+i); 
     }
   
 
   //general code for XINC != 1
   } else {
     #pragma omp parallel for schedule(dynamic,OMP_CHUNK) //if (N > OMP_CHUNK)
-    {
-      for (long i=0;i<N;i+=XINC)
-      { 
-        X[i] = (double) 0;
-      }
+    for (long i=0;i<N;i+=XINC)
+    { 
+      X[i] = (double) 0;
     }
   }
 

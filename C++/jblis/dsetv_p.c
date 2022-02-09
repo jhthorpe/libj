@@ -42,21 +42,17 @@ void libj_dsetv_p(const long N, const double A, double* X, const long XINC)
     }
  
     #pragma omp parallel for schedule(dynamic,OMP_CHUNK) //if (N > OMP_CHUNK)
+    for (long i=MOD;i<N;i+=UNROLL)
     {
-      for (long i=MOD;i<N;i+=UNROLL)
-      {
-        libj_dsetv_p_kernel(&A,X+i); 
-      }
+      libj_dsetv_p_kernel(&A,X+i); 
     }
 
   //general code for XINC != 1
   } else {
     #pragma omp parallel for schedule(dynamic,OMP_CHUNK) //if (N > OMP_CHUNK)
-    {
-      for (long i=0;i<N;i+=XINC)
-      { 
-        X[i] = (double) A;
-      }
+    for (long i=0;i<N;i+=XINC)
+    { 
+      X[i] = (double) A;
     }
   }
 

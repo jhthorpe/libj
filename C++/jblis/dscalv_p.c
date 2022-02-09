@@ -143,21 +143,17 @@ void libj_dscalv_p(const long N, const double A, double* X, const long XINC)
     }
     
     #pragma omp parallel for schedule(dynamic,OMP_CHUNK)
+    for (long i=MOD;i<N;i+=UNROLL)
     {
-      for (long i=MOD;i<N;i+=UNROLL)
-      {
-        libj_scalv_p_kernel(&A,X+i); 
-      }
+      libj_scalv_p_kernel(&A,X+i); 
     }
 
   //General XINC does not
   } else {
     #pragma omp parallel for schedule(dynamic,OMP_CHUNK)
+    for (long i=0;i<N;i+=XINC)
     {
-      for (long i=0;i<N;i+=XINC)
-      {
-        X[i] *= A; 
-      }
+      X[i] *= A; 
     }
   }
 
