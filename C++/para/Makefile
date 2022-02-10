@@ -1,10 +1,10 @@
 include ../make.config
 #----------------------------------------
 # Lists
-incs := pworld.hpp pprint.hpp strvec.hpp pfile.hpp 
-objs := pprint.o pfile.o
+incs := strvec.hpp pworld.hpp pprint.hpp pfile.hpp 
+objs := pprint.o pfile.o pworld.o 
 
-all : para.hpp $(incdir)/para.hpp $(incs) $(objs) $(libdir)/para.a example2.exe 
+all : para.hpp $(incdir)/para.hpp $(incs) $(objs) $(libdir)/para.a
 
 clean :
 	rm -f para.hpp
@@ -27,21 +27,20 @@ para.hpp : $(incs)
 #----------------------------------------
 # PPRINT
 pprint.o : pprint.cpp pprint.hpp $(incdir)/libjdef.h
-	$(CPP) $(CPPFLAGS) -c pprint.cpp -I$(incdir) 
+	$(CPP) $(CPPFLAGS) $(OMPCOMP) -c pprint.cpp -I$(incdir) 
 
 #----------------------------------------
 # PFILE
 pfile.o : pfile.cpp pfile.hpp $(incdir)/libjdef.h
-	$(CPP) $(CPPFLAGS) -c pfile.cpp -I$(incdir) 
+	$(CPP) $(CPPFLAGS) $(OMPCOMP) -c pfile.cpp -I$(incdir) 
 
 #----------------------------------------
-# Tests 
-example2.exe : example2.cpp $(incdir)/libjdef.h $(incdir)/para.hpp $(libdir)/para.a
-	$(CPP) $(CPPFLAGS) example2.cpp -o example2.exe \
-	-I$(basdir) -I$(libdir) $(libdir)/para.a
+# PWORLD
+pworld.o : pworld.cpp pworld.hpp $(incdir)/libjdef.h
+	$(CPP) $(CPPFLAGS) $(OMPCOMP) -c pworld.cpp -I$(incdir) 
 
 #----------------------------------------
 # Dependencies 
 $(incdir)/libjdef.h : $(basdir)/libjdef.h 
-	cp  $(basdir)/libjdef.h $(incdir)/libjdef.h
+	cp $(basdir)/libjdef.h $(incdir)/libjdef.h
 

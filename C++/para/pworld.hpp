@@ -33,60 +33,29 @@ struct Pworld
   public:
   
   //Basic Data
-  int status;
-  int mpi_num_tasks;
-  int mpi_task_id;
-  int omp_num_threads;
-  bool ismpi;
-  bool isomp;
-  bool mpi_ismaster;
+  int status;			//status
+  int mpi_world_num_tasks;	//world task size
+  int mpi_world_task_id;	//world task id
+  int mpi_shared_num_tasks;	//shared task size
+  int mpi_shared_task_id;	//shared task id
+  int omp_num_threads;		//number of OMP threads
+  bool ismpi;			//has mpi
+  bool isomp;			//has omp
+  bool mpi_world_ismaster;	//is world master 
+  bool mpi_shared_ismaster;	//is shared master 
 
   //MPI communicators
   #if defined LIBJ_MPI
-    MPI_Comm comm_world = MPI_COMM_WORLD;
-    //Other communicators?
+    MPI_Comm comm_world; 	//world communicator
+    MPI_Comm comm_shared;	//shared communicator
+    MPI_Info mpi_info;		//info
   #endif
 
-  //Initializer
-  int init()
-  {
-    #if defined LIBJ_MPI
-      MPI_Init(NULL,NULL);
-      MPI_Comm_size(comm_world,&mpi_num_tasks);
-      MPI_Comm_rank(comm_world,&mpi_task_id);
-      if (mpi_task_id == 0) {mpi_ismaster = true;}
-      ismpi = true;
-    #else
-      mpi_num_tasks=1;
-      mpi_task_id=0;
-      mpi_ismaster=true;
-      ismpi = false;
-    #endif
-
-    #if defined LIBJ_OMP
-      #pragma omp parallel shared(omp_num_threads) 
-      {
-        #pragma omp single
-        {
-          omp_num_threads = omp_get_num_threads(); 
-        }
-      }
-      isomp = true;
-    #else
-      omp_num_threads=1;
-      isomp = false;
-    #endif
-    return 0;
-  }
+  //Initialize
+  int init();
   
   //Destruction
-  int destroy() 
-  {
-    #if defined LIBJ_MPI
-      MPI_Finalize();
-    #endif
-    return 0;
-  }
+  int destroy();
 
 };
 

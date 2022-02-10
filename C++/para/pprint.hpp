@@ -9,6 +9,9 @@
 
   NOTE : init and destory *must* be called at the start and end  
 
+  NOTE : pprint works specificially with the WORLD communicator to gather
+	 all the output
+
 //INITIALIZE AND DESTROY
 buf.init(const Pworld& pworld);
 buf.destroy(const Pworld& pworld);
@@ -51,82 +54,6 @@ buf.reset();			 //reset buffer and stored messages
   #include <omp.h>
 #endif
 
-/* 
- *  Stringvec
- *  a lightweight implementation of std::vector for C-style strings
-*/
-struct Stringvec
-{
-  //data
-  int   size; 		//number of elements
-  int   capacity; 	//number of reserved elements
-  char* buffer; 	//buffer
-  
-  //Initializer
-  Stringvec() 
-  {
-    buffer = (char*) malloc(sizeof(char)*PPRINT_LEN*PPRINT_RES); 
-    if (buffer != NULL)
-    {
-      size = 0;
-      capacity = PPRINT_RES;
-      memset(buffer,(char)0,sizeof(char)*capacity*PPRINT_LEN);
-    } else {
-      printf("\nERROR ERROR ERROR\n");
-      printf("Stringvec::init could not malloc buffer\n");
-      exit(1);
-    }
-  }
-
-  //destructor
-  ~Stringvec() 
-  {
-    if (buffer != NULL) {free(buffer);}
-  }
-
-  //accessing vector elements
-  char* operator[] (const long elem) {return (buffer+PPRINT_LEN*elem);}
-  const char* operator[] (const long elem) const {return (buffer+PPRINT_LEN*elem);} 
-
-  //grow
-  void grow() 
-  {
-    char* newbuf = (char*) malloc(sizeof(char)*capacity*2*PPRINT_LEN);
-    memmove(newbuf,buffer,sizeof(char)*capacity*PPRINT_LEN);
-    memset(newbuf+size*PPRINT_LEN,(char)0,sizeof(char)*capacity*PPRINT_LEN);
-    capacity *= 2;
-    free(buffer);
-    buffer = newbuf;
-  }
-
-  //push_back
-  void push_back(const char* string)
-  {
-    if (size+1 > capacity) {grow();}
-    strcpy(buffer+size*PPRINT_LEN,string);
-    size++;
-  }
-
-  //clear
-  void clear()
-  {
-    memset(buffer,(char)0,sizeof(char)*size*PPRINT_LEN); 
-    size = 0;
-  }
-
-  //info
-//  void info() const
-//  {
-//    printf("Stringvec has size %d and capacity %d\n",size,capacity);
-//  }
-
-  //free the memory
-  void destroy() 
-  {
-    free(buffer);
-  }
-  
-};
 
 /*
  * Pprint
@@ -134,166 +61,42 @@ struct Stringvec
 */
 struct Pprint
 {
-  int       idx;
-  char      stemp[PPRINT_LEN];
-  char      buffer[PPRINT_LEN];
-  char*     pbuffer;
-  Stringvec vec;
+  int                idx;
+  char               stemp[PPRINT_LEN];
+  char               buffer[PPRINT_LEN];
+  char*              pbuffer;
+  Strvec<PPRINT_LEN> vec;
 
   //Initializer
-  Pprint()
-  {
-    idx = 0;
-    memset(buffer,(char)0,sizeof(char)*PPRINT_LEN);
-    memset(stemp,(char)0,sizeof(char)*PPRINT_LEN);
-    pbuffer = NULL;
-  }
+  Pprint();
 
   //Destructor
-  ~Pprint()
-  {
-    if (pbuffer != NULL) free(pbuffer);        
-  }
+  ~Pprint();
 
   //Initialize with Pworld
-  int init(const Pworld& pworld)
-  {
-    int stat = 0;
-    if (pworld.mpi_ismaster)
-    {
-      pbuffer = (char*) malloc(sizeof(char)*PPRINT_LEN*pworld.mpi_num_tasks);
-      if (pbuffer != NULL)
-      {
-        stat = 0;
-      } else {
-        printf("\nERROR ERROR ERORR\n");
-        printf("Pprint::init could not malloc %ld bytes\n",
-               sizeof(char)*PPRINT_LEN*pworld.mpi_num_tasks);
-        stat = 1;
-      }
-    }
-
-    return stat;
-  }
+  int init(const Pworld& pworld);
 
   //Destructor
-  int destroy(const Pworld& pworld) 
-  {
-    int stat = 0;
-    if (pworld.mpi_ismaster)
-    {
-      if (pbuffer != NULL) free(pbuffer);
-      pbuffer = NULL;
-    }
-    return stat;
-  }
+  int destroy(const Pworld& pworld);
 
   //Add a formatted string with variable input data
-  int add(const char* fstring,...)
-  {
-    int stat=0;
-
-    //if buffer has no elements 
-    if (idx == 0)
-    {
-      va_list arg;
-      va_start(arg,fstring); 
-      stat = vsprintf(buffer,fstring,arg); 
-      va_end(arg);
-
-      idx = strlen(buffer);
-
-    //buffer has elements, we need to concatinate
-    } else {
-      va_list arg;
-      va_start(arg,fstring); 
-      stat = vsprintf(stemp,fstring,arg); 
-      va_end(arg);
-      
-      int len = strlen(stemp);
-      if (idx + len < PPRINT_LEN)
-      {
-        memmove(&buffer[idx],stemp,sizeof(char)*len);//move stemp elements
-        memset(stemp,(char)0,sizeof(char)*len);//clear stemp elements
-        idx += len;
-      } else {
-        printf("\nERROR ERROR ERROR\n");
-        printf("Prprint::add string would case buffer overflow\n");
-        return 1;
-      }
-      
-    }
-
-    return stat;
-  }
+  int add(const char* fstring,...);
 
 
   //Add a formatted string with variable input data
-  int vadd(const char* fstring,va_list arg)
-  {
-    int stat=0;
-
-    //if buffer has no elements 
-    if (idx == 0)
-    {
-      stat = vsprintf(buffer,fstring,arg); 
-
-      idx = strlen(buffer);
-
-    //buffer has elements, we need to concatinate
-    } else {
-      stat = vsprintf(stemp,fstring,arg); 
-      
-      int len = strlen(stemp);
-      if (idx + len < PPRINT_LEN)
-      {
-        memmove(&buffer[idx],stemp,sizeof(char)*len);//move stemp elements
-        memset(stemp,(char)0,sizeof(char)*len);//clear stemp elements
-        idx += len;
-      } else {
-        printf("\nERROR ERROR ERROR\n");
-        printf("Prprint::add string would case buffer overflow\n");
-        return 1;
-      }
-      
-    }
-
-    return stat;
-  }
+  int vadd(const char* fstring,va_list arg);
 
   //Store buffer into vec, clear buffer
-  void store()
-  {
-    if (idx > 0)
-    {
-      vec.push_back(buffer);
-      clear();
-    }
-  }
+  void store();
 
   //Add and store
-  void addstore(const char* fstring, ...)
-  {
-    va_list arg;
-    va_start(arg,fstring);
-    vadd(fstring,arg);
-    va_end(arg);
-    store();
-  }
+  void addstore(const char* fstring, ...);
 
   //clear buffer
-  void clear()
-  {
-    memset(buffer,(char)0,sizeof(char)*idx);
-    idx = 0;
-  }
+  void clear();
 
   //reset whole thing
-  void reset()
-  {
-    vec.clear();
-    clear();
-  }
+  void reset();
 
   //print all messages
   void print_all(const Pworld& pworld) const;
@@ -301,19 +104,7 @@ struct Pprint
   //print specific messages
   void print(const Pworld& pworld, const int message) const;
 
-  //print info
-//  void info() const
-//  {
-//    printf("\nPprint has %d entries\n",vec.size);
-//    printf("Entry max size is %d\n",PPRINT_LEN);
-//  }
-
-  //print specific message
-//  void print(const int message) const
-//  {
-//    printf("%s",vec[message]);
-//  }
-
+  //get size
   int size() const {return vec.size;}
 
 };

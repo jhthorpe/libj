@@ -1,9 +1,14 @@
 README
 	JHT, Febuary 7, 2022 : created
 
-para is a subdirectory of LIBJ written in C++, which is aimed at implementing the features
-that help run a hybrid OpenMP/OpenMPI programs.
+para is a subdirectory of LIBJ written in C++, which is aimed at implementing the features that help run hybrid OpenMP/OpenMPI programs.
 
 OpenMP  : handles the parallelization within a node. 
 OpenMPI : handles the parallelization between nodes
 
+Each MPI task has a *unique* identifier in COMM_WORLD
+
+COMM_WORLD is split into SHARED communicators. 
+
+String Vectors:
+These are specially implemented here as the Strvec struct. 

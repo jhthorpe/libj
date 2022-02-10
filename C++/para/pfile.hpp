@@ -12,8 +12,13 @@
  *   The former are marked with an "s" at the start of the function name
  *   The latter are more efficient and should be used in general
  *
+ * Init must be called after construction
+ *
  * USAGE
  * ---------------
+ * //Initialization
+ * const int stat = pfile.init(pworld);
+ *
  * //To add files
  * const int fid = pfile.sadd(pworld,"filename"); 
  *
@@ -38,21 +43,35 @@
  * //to remove a file from both the filesystem and disk
  * stat = pfile.serase(pworld,"filename");
  * stat = pfile.erase(file_id);
+ *
+ * //store filesystem info as message in pprint
+ * pprint.store();
+ * pfile.info(pworld,pprint);
+ *
 ------------------------------------------------------------------------*/
 
 /*
- * Plain old data for fiel pointer and position
+ * Plain old data for file pointer and position
 */
 #ifndef PFIO_HPP
 #define PFIO_HPP
-#include <stdio.h>
-#include "libjdef.h"
 struct Pfio
 {
   FILE* fptr; //file pointer
   long  fpos; //file 
 };
 #endif
+
+/*
+ * Pbool plain old data to ``cheat'' std::vector<bool>
+*/
+#ifndef PBOOL_HPP
+#define PBOOL_HPP
+struct Pbool
+{
+  bool val; //value
+};
+#endif 
 
 #ifndef PFILE_HPP
 #define PFILE_HPP
@@ -68,6 +87,7 @@ struct Pfio
 #define PFILE_ERR_ERASE -4 //for if file erase failed
 #define PFILE_ERR_FLUSH -5 //could not flush file io buffer
 #define PFILE_RES 50
+#define PFILE_LEN 32 //pfile max length of strvec
 
 class Pfile
 {
@@ -75,14 +95,20 @@ class Pfile
   //Data
   std::vector<Pfio>        m_fio;     //file io struct list
   std::vector<bool>        m_isopen;  //bools for tracking if file is open
+//  Strvec<PFILE_LEN>        m_fname;
+//  Strvec<PFILE_LEN>        m_fstat;
   std::vector<std::string> m_fname;   //file names
   std::vector<std::string> m_fstat;   //file status
   int                      m_nfiles;  //number of files
+  int                      m_rootid;  //root file id
 
   public:
-  //Initialize and destroy
+  //Constructor/destructor
   Pfile();
   ~Pfile();
+
+  //Init
+  int init(const Pworld& pworld);
 
   //Add a file
   // Note that both sadd and add return the file id (or -1 on error)
@@ -92,6 +118,10 @@ class Pfile
   //Remove a file
   int sremove(const Pworld& pworld, std::string fname);
   int remove(const int fid); //already have name/loc
+
+  //Check if file is open
+  bool issopen(const Pworld& pworld, std::string fname) const;
+  bool isopen(const int fid) const; 
 
   //Open a file
   //saddopen returns the internal file id on successful exit, and error on not 
@@ -136,8 +166,14 @@ class Pfile
   //seek : needs internal file id!!
   void seek(const int fid, const long pos);
 
+  //get_pos : get file position
+  long get_pos(const int fid) const {return m_fio[fid].fpos;}
+
   //save filesystem info
+  int save(const Pworld& pworld);
+   
   //recover filesystem info
+//  int recover(const Pworld& pworld);
   
 };
 

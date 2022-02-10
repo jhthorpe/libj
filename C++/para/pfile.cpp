@@ -28,40 +28,89 @@ Pfile::~Pfile()
 }
 
 //-----------------------------------------------------------------------
+// Init -- initialize 0-file, the file for this class
+//-----------------------------------------------------------------------
+int Pfile::init(const Pworld& pworld)
+{
+  m_rootid = sadd(pworld,"pfile"); 
+  return 0;
+}
+
+//-----------------------------------------------------------------------
+// issopen -- check if file is open given external name 
+//-----------------------------------------------------------------------
+bool Pfile::issopen(const Pworld& pworld, std::string fname) const
+{
+  make_name(pworld,fname);
+  int loc = file_loc(fname);
+  if (loc != -1)
+  {
+    return m_isopen[loc];
+  } else {
+    return false;
+  }
+}
+
+//-----------------------------------------------------------------------
+// isopen -- check if file is open given file id
+//-----------------------------------------------------------------------
+bool Pfile::isopen(const int fid) const
+{
+  if (fid >= 0 && fid < m_nfiles)
+  {
+    return m_isopen[fid];
+  } else {
+    return false;
+  }
+}
+//-----------------------------------------------------------------------
 // Info
 //-----------------------------------------------------------------------
 void Pfile::info(const Pworld& pworld, Pprint& pprint) const
 {
-  pprint.store();
-  if (pworld.mpi_ismaster) {pprint.add("\nPfile system\n");}
-  pprint.add("Number of files on task %d : %d\n",pworld.mpi_task_id,m_nfiles);
-  if (m_nfiles > 0)
-  {
-    pprint.add("File            Open      Status\n");
-    for (int file=0;file<m_nfiles;file++)
-    {
  
-      //print first 16 characters of name
-      const int len = m_fname[file].length();
-      const int mm = (len <= 16) ? len : 16;
-      for (int c=0;c<mm;c++)
-      {
-        pprint.add("%c",m_fname[file][c]);
-      }
-      for (int c=len;c<16;c++)
-      {
-        pprint.add(" ");
-      }
+  //only the MASTER on the shared does any IO
+  if (pworld.mpi_shared_ismaster) 
+  {
+    pprint.add("\nPfile system\n");
 
-      if (m_isopen[file])
+    //NOTE -- we use the WORLD task id as this is unique
+    pprint.add("Number of files on task %d : %d\n",
+               pworld.mpi_world_task_id,m_nfiles);
+
+    if (m_nfiles > 0)
+    {
+      pprint.add("File            Open      Status\n");
+      for (int file=0;file<m_nfiles;file++)
       {
-        pprint.add("t          %s\n",m_fstat[file].c_str());
-      } else {
-        pprint.add("f\n");
+ 
+        //print first 16 characters of name
+        const int len = m_fname[file].length();
+        const int mm = (len <= 16) ? len : 16;
+        for (int c=0;c<mm;c++)
+        {
+          pprint.add("%c",m_fname[file][c]);
+        }
+        for (int c=len;c<16;c++)
+        {
+          pprint.add(" ");
+        }
+  
+        if (m_isopen[file])
+        {
+          pprint.add("t          %s\n",m_fstat[file].c_str());
+        } else {
+          pprint.add("f\n");
+        }
       }
     }
+    pprint.store();
+
+  //Add an empy message for all the shared tasks that aren't master
+  } else {
+    pprint.addstore("%c",(char)0);
+    //pprint.addstore("%c",(char)0);
   }
-  pprint.store();
 }
 
 //-----------------------------------------------------------------------
@@ -317,7 +366,7 @@ int Pfile::erase_all()
 //-----------------------------------------------------------------------
 void Pfile::make_name(const Pworld& pworld, std::string& fname) const
 {
-  fname.append(std::to_string(pworld.mpi_task_id));
+  fname.append(std::to_string(pworld.mpi_world_task_id));
 }
 
 //-----------------------------------------------------------------------
@@ -404,3 +453,35 @@ int Pfile::get_fid(const Pworld& pworld, std::string fname) const
   int loc = file_loc(fname);
   return loc;
 }
+
+//-----------------------------------------------------------------------
+// save 
+//-----------------------------------------------------------------------
+int Pfile::save(const Pworld& pworld) 
+{
+  int stat = 0;
+
+  //Only the master in shared saves the data
+  if (pworld.mpi_shared_ismaster)
+  {
+    //Open file
+    if (isopen(m_rootid)) {stat = close(m_rootid);}
+    if (stat != 0) {return stat;}
+    if (open(m_rootid,"w+b") != 0) {return PFILE_ERR_OPEN;}  
+
+    //write size
+    long foff = 0;
+    write(m_rootid,foff,&m_nfiles,sizeof(m_nfiles),1); 
+    foff = get_pos(m_rootid);
+
+    //Write data
+    write(m_rootid,foff,m_fio.data(),sizeof(Pfio),m_nfiles); 
+    foff = get_pos(m_rootid);
+
+    //Close file
+    if (close(m_rootid) != 0) {return PFILE_ERR_CLOSE;}
+  }
+
+  return stat;
+}
+
