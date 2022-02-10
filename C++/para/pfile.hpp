@@ -182,10 +182,10 @@ class Pfile
   long get_pos(const int fid) const {return m_fio[fid].fpos;}
 
   //save filesystem info
-//  int save(const Pworld& pworld);
+  int save(const Pworld& pworld);
    
   //recover filesystem info
-//  int recover(const Pworld& pworld);
+  int recover(const Pworld& pworld);
 
 };
 

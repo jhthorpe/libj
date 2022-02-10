@@ -50,10 +50,13 @@ struct Strvec
   int maxlen() const {return STRLEN;}
 
   //reserve
-  int reserve(const int len);
+  int reserve(const long len);
 
   //erase
   int erase(const long elm);
+
+  //resize
+  int resize(const long len);
 
 };
 
@@ -133,15 +136,15 @@ void Strvec<STRLEN>::destroy()
 // reserve 
 //--------------------------------------------------------
 template<const int STRLEN>
-int Strvec<STRLEN>::reserve(const int len)
+int Strvec<STRLEN>::reserve(const long len)
 {
   if (capacity < len)
   {
     char* newbuf = (char*) malloc(sizeof(char)*STRLEN*len); 
     if (newbuf != NULL)
     {
-      memmove(newbuf,buffer,sizeof(char)*capacity*STRLEN);
-      memset(newbuf+capacity*STRLEN,(char)0,sizeof(char)*(len-capacity));
+      memmove(newbuf,buffer,sizeof(char)*size*STRLEN);
+      memset(newbuf+size*STRLEN,(char)0,sizeof(char)*(len-size));
       capacity = len;
       free(buffer);
       buffer = newbuf; 
@@ -163,6 +166,28 @@ int Strvec<STRLEN>::erase(const long elm)
   memset(buffer+STRLEN*(size-1),(char)0,sizeof(char)*STRLEN);
   size--;
   return 0;
+}
+
+//--------------------------------------------------------
+// resize 
+//--------------------------------------------------------
+template<const int STRLEN>
+int Strvec<STRLEN>::resize(const long len)
+{
+  char* newbuf = (char*) malloc(sizeof(char)*STRLEN*len); 
+  if (newbuf != NULL)
+  {
+    memmove(newbuf,buffer,sizeof(char)*size*STRLEN);
+    memset(newbuf+size*STRLEN,(char)0,sizeof(char)*(len-size));
+    capacity = len;
+    size = capacity;
+    free(buffer);
+    buffer = newbuf; 
+    return 0;
+  } else {
+    return 1; 
+  } 
+  return 0;  
 }
 
 #endif

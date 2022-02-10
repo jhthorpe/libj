@@ -16,6 +16,7 @@ Pfile::Pfile()
   m_fname.reserve(PFILE_RES);
   m_fstat.reserve(PFILE_RES);
   m_nfiles = 0;
+  memset(m_buf,(char)0,sizeof(char)*PFILE_LEN);
 }
 
 //-----------------------------------------------------------------------
@@ -32,11 +33,7 @@ Pfile::~Pfile()
 //-----------------------------------------------------------------------
 int Pfile::init(const Pworld& pworld)
 {
-  if (pworld.mpi_doesIO)
-  {
-    m_rootid = sadd(pworld,"pfile"); 
-    return 0;
-  }
+  if (pworld.mpi_doesIO) {m_rootid = sadd(pworld,"pfile");}
   return 0;
 }
 
@@ -632,33 +629,81 @@ int Pfile::get_fid(const Pworld& pworld, const char* fname)
 //-----------------------------------------------------------------------
 // save 
 //-----------------------------------------------------------------------
-/*
 int Pfile::save(const Pworld& pworld) 
 {
   int stat = 0;
 
-  //Only the master in shared saves the data
-  if (pworld.mpi_shared_ismaster)
+  if (pworld.mpi_doesIO)
   {
     //Open file
-    if (xisopen(m_rootid)) {stat = close(m_rootid);}
+    if (xisopen(m_rootid)) {stat = xclose(m_rootid);}
     if (stat != 0) {return stat;}
-    if (open(m_rootid,"w+b") != 0) {return PFILE_ERR_OPEN;}  
+    if (xopen(m_rootid,"w+b") != 0) {return PFILE_ERR_OPEN;}  
 
-    //write size
-    long foff = 0;
-    write(m_rootid,foff,&m_nfiles,sizeof(m_nfiles),1); 
-    foff = get_pos(m_rootid);
+    //write number of files
+    seek(m_rootid,0);
+    write(m_rootid,get_pos(m_rootid),&m_nfiles,sizeof(m_nfiles),1); 
 
     //Write data
-    write(m_rootid,foff,m_fio.data(),sizeof(Pfio),m_nfiles); 
-    foff = get_pos(m_rootid);
+    write(m_rootid,get_pos(m_rootid),m_fio.data(),sizeof(Pfio),m_nfiles); 
+    write(m_rootid,get_pos(m_rootid),&m_isopen[0],sizeof(m_isopen[0]),m_nfiles);
+    write(m_rootid,get_pos(m_rootid),m_fname[0],
+          sizeof(char)*m_fname.maxlen(),m_nfiles); 
+    write(m_rootid,get_pos(m_rootid),m_fstat[0],
+          sizeof(char)*m_fstat.maxlen(),m_nfiles); 
 
     //Close file
-    if (close(m_rootid) != 0) {return PFILE_ERR_CLOSE;}
+    if (xclose(m_rootid) != 0) {return PFILE_ERR_CLOSE;}
   }
 
   return stat;
 }
-*/
 
+//-----------------------------------------------------------------------
+// recover
+//-----------------------------------------------------------------------
+int Pfile::recover(const Pworld& pworld)
+{
+  int stat = 0;
+  if (pworld.mpi_doesIO)
+  {
+    //Open file
+    if (xisopen(m_rootid)) {stat = xclose(m_rootid);}
+    if (stat != 0) {return stat;}
+    if (xopen(m_rootid,"rb") != 0) {return PFILE_ERR_OPEN;}  
+
+    //read number of files
+    seek(m_rootid,0);
+    read(m_rootid,get_pos(m_rootid),&m_nfiles,sizeof(m_nfiles),1); 
+    printf("num files are %d\n",m_nfiles);
+
+    //resize vectors to 
+    m_fio.resize(m_nfiles);
+    m_isopen.resize(m_nfiles);
+    m_fname.resize(m_nfiles);
+    m_fstat.resize(m_nfiles);
+
+    //read the vector data
+    read(m_rootid,get_pos(m_rootid),m_fio.data(),sizeof(Pfio),m_nfiles); 
+    read(m_rootid,get_pos(m_rootid),&m_isopen[0],sizeof(m_isopen[0]),m_nfiles);
+    read(m_rootid,get_pos(m_rootid),m_fname[0],
+          sizeof(char)*m_fname.maxlen(),m_nfiles); 
+    read(m_rootid,get_pos(m_rootid),m_fstat[0],
+          sizeof(char)*m_fstat.maxlen(),m_nfiles); 
+
+    //reopen all files that were open at time of save
+    //this is a little bit hacky but should work
+    for (int file=0;file<m_nfiles;file++) 
+    {
+      if (xisopen(file)) 
+      {
+        m_isopen[file].val = false;
+        xopen(file,m_fstat[file]);
+      }
+    }
+    
+    //Close file
+    if (xclose(m_rootid) != 0) {return PFILE_ERR_CLOSE;}
+  }
+  return stat;
+}
