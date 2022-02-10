@@ -46,7 +46,14 @@ struct Strvec
   //free the memory
   void destroy();
 
+  //return max length
   int maxlen() const {return STRLEN;}
+
+  //reserve
+  int reserve(const int len);
+
+  //erase
+  int erase(const long elm);
 
 };
 
@@ -122,5 +129,40 @@ void Strvec<STRLEN>::destroy()
   free(buffer);
 }
 
+//--------------------------------------------------------
+// reserve 
+//--------------------------------------------------------
+template<const int STRLEN>
+int Strvec<STRLEN>::reserve(const int len)
+{
+  if (capacity < len)
+  {
+    char* newbuf = (char*) malloc(sizeof(char)*STRLEN*len); 
+    if (newbuf != NULL)
+    {
+      memmove(newbuf,buffer,sizeof(char)*capacity*STRLEN);
+      memset(newbuf+capacity*STRLEN,(char)0,sizeof(char)*(len-capacity));
+      capacity = len;
+      free(buffer);
+      buffer = newbuf; 
+      return 0;
+    } else {
+      return 1; 
+    } 
+  }
+  return 0;  
+}
+
+//--------------------------------------------------------
+// erase -- delete an element and move the rest down 
+//--------------------------------------------------------
+template<const int STRLEN>
+int Strvec<STRLEN>::erase(const long elm)
+{
+  memmove(buffer+STRLEN*elm,buffer+STRLEN*(elm+1),sizeof(char)*STRLEN*(size-elm-1));
+  memset(buffer+STRLEN*(size-1),(char)0,sizeof(char)*STRLEN);
+  size--;
+  return 0;
+}
 
 #endif

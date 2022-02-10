@@ -86,6 +86,7 @@ struct Pbool
 #define PFILE_ERR_CLOSE -3 //for if file close failed
 #define PFILE_ERR_ERASE -4 //for if file erase failed
 #define PFILE_ERR_FLUSH -5 //could not flush file io buffer
+#define PFILE_ERR_SLEN -6 //input string is too long
 #define PFILE_RES 50
 #define PFILE_LEN 32 //pfile max length of strvec
 
@@ -93,12 +94,11 @@ class Pfile
 {
   private: 
   //Data
-  std::vector<Pfio>        m_fio;     //file io struct list
-  std::vector<bool>        m_isopen;  //bools for tracking if file is open
-//  Strvec<PFILE_LEN>        m_fname;
-//  Strvec<PFILE_LEN>        m_fstat;
-  std::vector<std::string> m_fname;   //file names
-  std::vector<std::string> m_fstat;   //file status
+  std::vector<Pfio>        m_fio;	//file io struct list
+  std::vector<Pbool>        m_isopen;	//bools for tracking if file is open
+  Strvec<PFILE_LEN>        m_fname;	//file names
+  Strvec<PFILE_LEN>        m_fstat;	//file status
+  char                     m_buf[PFILE_LEN];
   int                      m_nfiles;  //number of files
   int                      m_rootid;  //root file id
 
@@ -112,45 +112,45 @@ class Pfile
 
   //Add a file
   // Note that both sadd and add return the file id (or -1 on error)
-  int sadd(const Pworld& pworld, std::string fname);
-  int add(const std::string& fname); //add if we already know name/loc
+  int sadd(const Pworld& pworld, const char* fname);
+  int add(const char* fname); //add if we already know name/loc
 
   //Remove a file
-  int sremove(const Pworld& pworld, std::string fname);
+  int sremove(const Pworld& pworld, const char* fname);
   int remove(const int fid); //already have name/loc
 
   //Check if file is open
-  bool issopen(const Pworld& pworld, std::string fname) const;
+  bool issopen(const Pworld& pworld, const char* fname);
   bool isopen(const int fid) const; 
 
   //Open a file
   //saddopen returns the internal file id on successful exit, and error on not 
-  int sopen(const Pworld& pworld, std::string fname, const std::string fstat);
-  int saddopen(const Pworld& pworld, std::string fname, const std::string fstat);
-  int open(const int fid, const std::string& fstat); 
+  int sopen(const Pworld& pworld, const char* fname, const char* fstat);
+  int saddopen(const Pworld& pworld, const char* fname, const char* fstat);
+  int open(const int fid, const char* fstat); 
   
   //Close a file
-  int sclose(const Pworld& pworld, std::string fname);
+  int sclose(const Pworld& pworld, const char* fname);
   int close(const int fid);
   int close_all();
 
   //erase files -- close, delete, remove
-  int serase(const Pworld& pworld, std::string fname);
+  int serase(const Pworld& pworld, const char* fname);
   int erase(const int fid);
   int erase_all(); 
 
   //Flush file buffer
-  int sflush(const Pworld& pworld, std::string fname) const;
+  int sflush(const Pworld& pworld, const char* fname);
   int flush(const int fid) const;
 
   //Get file id within fsys
-  int get_fid(const Pworld& pworld, std::string fname) const;
+  int get_fid(const Pworld& pworld, const char* fname);
 
   //locate file id from string
-  int file_loc(const std::string fname) const;
+  int file_loc(const char* fname) const;
   
   //Make file name with tasks
-  void make_name(const Pworld& pworld, std::string& fname) const;
+  int make_name(const Pworld& pworld, const char* fname);
   
   //info
   void info(const Pworld& pworld, Pprint& pprint) const;
@@ -170,7 +170,7 @@ class Pfile
   long get_pos(const int fid) const {return m_fio[fid].fpos;}
 
   //save filesystem info
-  int save(const Pworld& pworld);
+//  int save(const Pworld& pworld);
    
   //recover filesystem info
 //  int recover(const Pworld& pworld);

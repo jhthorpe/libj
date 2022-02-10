@@ -171,19 +171,15 @@ void Pprint::reset()
 //--------------------------------------------------------
 void Pprint::print_all(const Pworld& pworld) const
 {
-  printf("task %d x1 \n",pworld.mpi_world_task_id);
   //MPI code
   #if defined LIBJ_MPI
   for (int message=0;message<vec.size;message++)
   {
     //gather messages
-    printf("task %d prior barrier\n",pworld.mpi_world_task_id);
     MPI_Barrier(pworld.comm_world);
 
-    const int slen = strlen(vec[message]);
-    printf("slen on task %d is %d\n",pworld.mpi_world_task_id,slen);
     MPI_Gather(vec[message],
-               slen,MPI_CHAR,
+               PPRINT_LEN,MPI_CHAR,
                pbuffer+PPRINT_LEN*pworld.mpi_world_task_id,
                PPRINT_LEN,MPI_CHAR,
                0,

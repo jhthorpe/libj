@@ -39,13 +39,18 @@ int Pfile::init(const Pworld& pworld)
 //-----------------------------------------------------------------------
 // issopen -- check if file is open given external name 
 //-----------------------------------------------------------------------
-bool Pfile::issopen(const Pworld& pworld, std::string fname) const
+bool Pfile::issopen(const Pworld& pworld, const char* fname) 
 {
-  make_name(pworld,fname);
-  int loc = file_loc(fname);
-  if (loc != -1)
+  const int stat = make_name(pworld,fname);
+  if (stat == 0)
   {
-    return m_isopen[loc];
+    int loc = file_loc(m_buf);
+    if (loc != -1)
+    {
+      return m_isopen[loc].val;
+    } else {
+      return false;
+    }
   } else {
     return false;
   }
@@ -58,7 +63,7 @@ bool Pfile::isopen(const int fid) const
 {
   if (fid >= 0 && fid < m_nfiles)
   {
-    return m_isopen[fid];
+    return m_isopen[fid].val;
   } else {
     return false;
   }
@@ -80,25 +85,22 @@ void Pfile::info(const Pworld& pworld, Pprint& pprint) const
 
     if (m_nfiles > 0)
     {
-      pprint.add("File            Open      Status\n");
+      pprint.add("File                            Open      Status\n");
       for (int file=0;file<m_nfiles;file++)
       {
  
         //print first 16 characters of name
-        const int len = m_fname[file].length();
-        const int mm = (len <= 16) ? len : 16;
-        for (int c=0;c<mm;c++)
-        {
-          pprint.add("%c",m_fname[file][c]);
-        }
-        for (int c=len;c<16;c++)
+        const int len = strlen(m_fname[file]); 
+        const int mm = (len <= PFILE_LEN) ? len : PFILE_LEN;
+        pprint.add("%s",m_fname[file]);
+        for (int c=len;c<PFILE_LEN;c++)
         {
           pprint.add(" ");
         }
   
-        if (m_isopen[file])
+        if (isopen(file))
         {
-          pprint.add("t          %s\n",m_fstat[file].c_str());
+          pprint.add("t          %s\n",m_fstat[file]);
         } else {
           pprint.add("f\n");
         }
@@ -116,22 +118,26 @@ void Pfile::info(const Pworld& pworld, Pprint& pprint) const
 //-----------------------------------------------------------------------
 // Add -- add a string to the filesystem 
 //-----------------------------------------------------------------------
-int Pfile::sadd(const Pworld& pworld, std::string fname)
+int Pfile::sadd(const Pworld& pworld, const char* fname)
 {
   //look for file in list
-  make_name(pworld,fname);
-  int loc = file_loc(fname);
-  if (loc == -1) {loc = add(fname);} 
-  return loc;
+  if (make_name(pworld,fname) == 0)
+  {
+    int loc = file_loc(m_buf);
+    if (loc == -1) {loc = add(m_buf);} 
+    return loc;
+  } else {
+    return PFILE_ERR_SLEN;
+  }
 }
 
 //-----------------------------------------------------------------------
-// sadd -- add file, given we already have name and checked if it exists 
+// add -- add file, given we already have name and checked if it exists 
 //-----------------------------------------------------------------------
-int Pfile::add(const std::string& fname)
+int Pfile::add(const char* fname)
 {
   m_nfiles++;
-  m_isopen.push_back(false);  
+  m_isopen.push_back({false});  
   m_fio.push_back({NULL,0});
   m_fname.push_back(fname);
   m_fstat.push_back("c");
@@ -141,23 +147,22 @@ int Pfile::add(const std::string& fname)
 //-----------------------------------------------------------------------
 // sremove -- remove a file from the filesystem given it's unadjusted name
 //-----------------------------------------------------------------------
-int Pfile::sremove(const Pworld& pworld, std::string fname)
+int Pfile::sremove(const Pworld& pworld, const char* fname)
 {
-  make_name(pworld,fname);
-  int loc = file_loc(fname);
-  
-  if (loc != -1)
+  const int stat = make_name(pworld,fname);
+  if (stat == 0)
   {
-    if (m_fio[loc].fptr != NULL) {fclose(m_fio[loc].fptr);}
+    int loc = file_loc(m_buf);
+  
+    if (loc != -1)
+    {
+      remove(loc);
+    }
+    return (loc != -1) ? 0 : 1;
 
-    m_fio.erase(m_fio.begin()+loc);
-    m_isopen.erase(m_isopen.begin()+loc);
-    m_fname.erase(m_fname.begin()+loc);
-    m_fstat.erase(m_fstat.begin()+loc);
-    m_nfiles--;
+  } else {
+    return PFILE_ERR_SLEN;
   }
-
-  return (loc != -1) ? 0 : 1;
 }
 
 //-----------------------------------------------------------------------
@@ -168,8 +173,8 @@ int Pfile::remove(const int fid)
   if (m_fio[fid].fptr != NULL) {fclose(m_fio[fid].fptr);}
   m_fio.erase(m_fio.begin()+fid);
   m_isopen.erase(m_isopen.begin()+fid);
-  m_fname.erase(m_fname.begin()+fid);
-  m_fstat.erase(m_fstat.begin()+fid);
+  m_fname.erase(fid);
+  m_fstat.erase(fid);
   m_nfiles--;
   return 0;
 }
@@ -177,42 +182,47 @@ int Pfile::remove(const int fid)
 //-----------------------------------------------------------------------
 // open -- opens a file with external name
 //-----------------------------------------------------------------------
-int Pfile::sopen(const Pworld& pworld, std::string fname, const std::string fstat)
+int Pfile::sopen(const Pworld& pworld, const char* fname, const char* fstat)
 {
-  int stat = 0;
-  make_name(pworld,fname);
-  int loc = file_loc(fname);
-
-  if (loc != -1)
+  if (make_name(pworld,fname) == 0)
   {
-    stat = open(loc,fstat);
+    int loc = file_loc(m_buf);
+    if (loc != -1)
+    {
+      return open(loc,fstat);
+    } else {
+      return PFILE_ERR_OPEN;
+    }
   } else {
-    stat = PFILE_ERR_OPEN;
+    return PFILE_ERR_SLEN;
   }
-  return stat;
-}
+} 
 
 //-----------------------------------------------------------------------
 // saddopen -- add and open a file file with external name 
 //   returns the internal file id of the file, or an error message if it failed
 //-----------------------------------------------------------------------
-int Pfile::saddopen(const Pworld& pworld, std::string fname, const std::string fstat)
+int Pfile::saddopen(const Pworld& pworld, const char* fname, const char* fstat)
 {
   int stat = 0;
-  make_name(pworld,fname);
-  int loc = file_loc(fname);
-
-  //If file doesn't exist
-  if (loc == -1)
+  if (make_name(pworld,fname) == 0)
   {
-    stat = add(fname); 
-    if (stat != 0) return stat;
-    loc = m_nfiles-1;
-    stat = open(loc,fstat);    
+    int loc = file_loc(m_buf);
+
+    //If file doesn't exist
+    if (loc == -1)
+    {
+      stat = add(m_buf); 
+      if (stat != 0) return stat;
+      loc = m_nfiles-1;
+      stat = open(loc,fstat);    
  
-  //file exists, error
+    //file exists, error
+    } else {
+      stat = PFILE_ERR_OPEN;
+    }
   } else {
-    stat = PFILE_ERR_OPEN;
+    return PFILE_ERR_SLEN;
   }
 
   return stat; 
@@ -220,7 +230,7 @@ int Pfile::saddopen(const Pworld& pworld, std::string fname, const std::string f
 //-----------------------------------------------------------------------
 // open -- open with with internal id 
 //-----------------------------------------------------------------------
-int Pfile::open(const int fid, const std::string& fstat) 
+int Pfile::open(const int fid, const char* fstat) 
 {
   int stat=0;
 
@@ -228,16 +238,16 @@ int Pfile::open(const int fid, const std::string& fstat)
   {
 
     //if file is closed  
-    if (!m_isopen[fid])
+    if (!isopen(fid))
     {
-      m_fio[fid].fptr = fopen(m_fname[fid].c_str(),fstat.c_str());
+      strncpy(m_fstat[fid],fstat,PFILE_LEN);
+      m_fio[fid].fptr = fopen(m_fname[fid],m_fstat[fid]);
 
       //check for successful open
       if (m_fio[fid].fptr != NULL)
       {
         m_fio[fid].fpos = 0;
-        m_isopen[fid] = true;
-        m_fstat[fid] = fstat;
+        m_isopen[fid].val = true;
 
       //bad open
       } else {
@@ -263,7 +273,7 @@ int Pfile::close_all()
   int stat = 0;
   for (int file=0;file<m_nfiles;file++) 
   {
-    if (m_isopen[file])
+    if (isopen(file))
     {
       stat += close(file);
     }
@@ -274,18 +284,22 @@ int Pfile::close_all()
 //-----------------------------------------------------------------------
 // sclose -- close file with external name 
 //-----------------------------------------------------------------------
-int Pfile::sclose(const Pworld& pworld, std::string fname)
+int Pfile::sclose(const Pworld& pworld, const char* fname)
 {
   int stat = 0;
-  make_name(pworld,fname);
-  int loc = file_loc(fname);
-  if (loc != -1)
+  if (make_name(pworld,fname) == 0)
   {
-    stat = close(loc); 
+    int loc = file_loc(m_buf);
+    if (loc != -1)
+    {
+      stat = close(loc); 
+    } else {
+      stat = PFILE_ERR_CLOSE; 
+    }
+    return stat;
   } else {
-    stat = PFILE_ERR_CLOSE; 
+    return PFILE_ERR_SLEN;
   }
-  return stat;
 }
 
 //-----------------------------------------------------------------------
@@ -296,13 +310,13 @@ int Pfile::close(const int fid)
   int stat = 0;
 
   //if file is open 
-  if (m_isopen[fid])
+  if (isopen(fid))
   {
     stat = fclose(m_fio[fid].fptr);
     m_fio[fid].fptr = NULL;
     m_fio[fid].fpos = 0;
-    m_isopen[fid] = false;
-    m_fstat[fid] = "c";
+    m_isopen[fid].val = false;
+    strncpy(m_fstat[fid],"c",PFILE_LEN);
   
     if (stat != 0) {stat = PFILE_ERR_CLOSE;}
 
@@ -317,22 +331,26 @@ int Pfile::close(const int fid)
 //-----------------------------------------------------------------------
 // serase file with external name
 //-----------------------------------------------------------------------
-int Pfile::serase(const Pworld& pworld, std::string fname)
+int Pfile::serase(const Pworld& pworld, const char* fname)
 {
   int stat = 0;
-  make_name(pworld,fname);
-  int loc = file_loc(fname);
-
-  //if file is in filesystem
-  if (loc != -1)
+  if (make_name(pworld,fname) == 0)
   {
-    stat = erase(loc);
-  //file is not in filesystem
-  } else {
-    stat = PFILE_ERR_ERASE;
-  }
+    int loc = file_loc(m_buf);
 
-  return stat; 
+    //if file is in filesystem
+    if (loc != -1)
+    {
+      stat = erase(loc);
+    //file is not in filesystem
+    } else {
+      stat = PFILE_ERR_ERASE;
+    }
+  
+    return stat; 
+  } else {
+    return PFILE_ERR_SLEN;
+  }
 }
 
 //-----------------------------------------------------------------------
@@ -342,7 +360,7 @@ int Pfile::erase(const int fid)
 {
     int stat = close(fid);   
     //if (stat != 0) {return stat;}
-    stat += std::remove(m_fname[fid].c_str()); //C remove function
+    stat += std::remove(m_fname[fid]); //C remove function
     //if (stat != 0) {return PFILE_ERR_ERASE;}
     stat += remove(fid); //internal remove function
     return (stat == 0) ? 0 : PFILE_ERR_ERASE; 
@@ -364,20 +382,28 @@ int Pfile::erase_all()
 //-----------------------------------------------------------------------
 // make_name -- makes the name given  
 //-----------------------------------------------------------------------
-void Pfile::make_name(const Pworld& pworld, std::string& fname) const
+int Pfile::make_name(const Pworld& pworld, const char* fname)
 {
-  fname.append(std::to_string(pworld.mpi_world_task_id));
+  const int len = strlen(fname);
+  if (len < PFILE_LEN) 
+  {
+    memset(m_buf,(char)0,sizeof(char)*PFILE_LEN);
+    snprintf(m_buf,PFILE_LEN,"%s%d",fname,pworld.mpi_world_task_id); 
+    return 0; 
+  } else {
+    return 1;
+  }
 }
 
 //-----------------------------------------------------------------------
-// file_loc -- find location of file by string 
+// file_loc -- find location of file by internal string 
 //-----------------------------------------------------------------------
-int Pfile::file_loc(const std::string fname) const
+int Pfile::file_loc(const char* fname) const
 {
   int loc = -1;
   for (int file=0;file<m_nfiles;file++)
   {
-    if (fname.compare(m_fname[file]) == 0) {return file;} 
+    if (strcmp(fname,m_fname[file]) == 0) {return file;}
   }
   return loc;
 }
@@ -419,19 +445,23 @@ void Pfile::seek(const int file, const long pos)
 //-----------------------------------------------------------------------
 // sflush -- flush file buffer with external name
 //-----------------------------------------------------------------------
-int Pfile::sflush(const Pworld& pworld, std::string fname) const
+int Pfile::sflush(const Pworld& pworld, const char* fname) 
 {
   int stat = 0;
-  make_name(pworld,fname);
-  int loc = file_loc(fname);
-  
-  if (stat != -1)
+  if (make_name(pworld,fname) == 0)
   {
-    fflush(m_fio[loc].fptr);
+    int loc = file_loc(m_buf);
+  
+    if (stat != -1)
+    {
+      fflush(m_fio[loc].fptr);
+    } else {
+      stat = PFILE_ERR_FLUSH; 
+    }
+    return stat;
   } else {
-    stat = PFILE_ERR_FLUSH; 
+    return PFILE_ERR_SLEN;
   }
-  return stat;
 }
 
 //-----------------------------------------------------------------------
@@ -447,16 +477,21 @@ int Pfile::flush(const int fid) const
 //-----------------------------------------------------------------------
 // get_fid
 //-----------------------------------------------------------------------
-int Pfile::get_fid(const Pworld& pworld, std::string fname) const
+int Pfile::get_fid(const Pworld& pworld, const char* fname)
 {
-  make_name(pworld,fname); 
-  int loc = file_loc(fname);
-  return loc;
+  if (make_name(pworld,fname) == 0)
+  { 
+    int loc = file_loc(m_buf);
+    return loc;
+  } else {
+    return PFILE_ERR_SLEN;
+  }
 }
 
 //-----------------------------------------------------------------------
 // save 
 //-----------------------------------------------------------------------
+/*
 int Pfile::save(const Pworld& pworld) 
 {
   int stat = 0;
@@ -465,7 +500,7 @@ int Pfile::save(const Pworld& pworld)
   if (pworld.mpi_shared_ismaster)
   {
     //Open file
-    if (isopen(m_rootid)) {stat = close(m_rootid);}
+    if (isopen(m_rootid).val) {stat = close(m_rootid);}
     if (stat != 0) {return stat;}
     if (open(m_rootid,"w+b") != 0) {return PFILE_ERR_OPEN;}  
 
@@ -484,4 +519,5 @@ int Pfile::save(const Pworld& pworld)
 
   return stat;
 }
+*/
 
