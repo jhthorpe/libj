@@ -30,8 +30,8 @@ int Pworld::init()
     MPI_Comm_size(comm_shared,&mpi_shared_num_tasks);
     MPI_Comm_rank(comm_shared,&mpi_shared_task_id);
     mpi_shared_ismaster = (mpi_shared_task_id != 0) ? false : true; 
+    mpi_doesIO = (!mpi_shared_ismaster) ? false : true;
     
-
   #else
     ismpi = false;
 
@@ -42,6 +42,7 @@ int Pworld::init()
     mpi_shared_num_tasks=1;
     mpi_shared_task_id=0;
     mpi_shared_ismaster=true;
+    mpi_doesIO = true;
   #endif
 
   #if defined LIBJ_OMP

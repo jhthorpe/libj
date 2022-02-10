@@ -43,6 +43,7 @@ struct Pworld
   bool isomp;			//has omp
   bool mpi_world_ismaster;	//is world master 
   bool mpi_shared_ismaster;	//is shared master 
+  bool mpi_doesIO;		//if true, this task does file IO
 
   //MPI communicators
   #if defined LIBJ_MPI

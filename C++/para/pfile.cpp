@@ -2,7 +2,7 @@
  * pfile.cpp
  *  JHT, Febuary 8, 2022 : created
  *
- *  .hpp file for Pfile, which handles a (possibly parallel) filesyste,
+ *  .hpp file for Pfile, which handles a (possibly parallel) filesystem
 ------------------------------------------------------------------------*/
 #include "para.hpp"
 
@@ -24,7 +24,7 @@ Pfile::Pfile()
 Pfile::~Pfile()
 {
   //close all in the future
-  close_all();
+  xclose_all();
 }
 
 //-----------------------------------------------------------------------
@@ -32,7 +32,11 @@ Pfile::~Pfile()
 //-----------------------------------------------------------------------
 int Pfile::init(const Pworld& pworld)
 {
-  m_rootid = sadd(pworld,"pfile"); 
+  if (pworld.mpi_doesIO)
+  {
+    m_rootid = sadd(pworld,"pfile"); 
+    return 0;
+  }
   return 0;
 }
 
@@ -41,25 +45,41 @@ int Pfile::init(const Pworld& pworld)
 //-----------------------------------------------------------------------
 bool Pfile::issopen(const Pworld& pworld, const char* fname) 
 {
-  const int stat = make_name(pworld,fname);
-  if (stat == 0)
+  if (pworld.mpi_doesIO)
   {
-    int loc = file_loc(m_buf);
-    if (loc != -1)
+    const int stat = make_name(pworld,fname);
+    if (stat == 0)
     {
-      return m_isopen[loc].val;
+      int loc = xfile_loc(m_buf);
+      if (loc != -1)
+      {
+        return m_isopen[loc].val;
+      } else {
+        return false;
+      }
     } else {
       return false;
     }
-  } else {
-    return false;
-  }
+  } 
+  return false;
 }
 
 //-----------------------------------------------------------------------
 // isopen -- check if file is open given file id
 //-----------------------------------------------------------------------
-bool Pfile::isopen(const int fid) const
+bool Pfile::isopen(const Pworld& pworld, const int fid) const
+{
+  if (pworld.mpi_doesIO)
+  {
+    return xisopen(fid);
+  } 
+  return false;
+}
+
+//-----------------------------------------------------------------------
+// xisopen -- check if file is open given file id, no pworld check
+//-----------------------------------------------------------------------
+bool Pfile::xisopen(const int fid) const
 {
   if (fid >= 0 && fid < m_nfiles)
   {
@@ -75,9 +95,10 @@ void Pfile::info(const Pworld& pworld, Pprint& pprint) const
 {
  
   //only the MASTER on the shared does any IO
-  if (pworld.mpi_shared_ismaster) 
+  if (pworld.mpi_doesIO) 
   {
-    pprint.add("\nPfile system\n");
+
+    if (pworld.mpi_world_ismaster) {pprint.add("\nPfile system\n");}
 
     //NOTE -- we use the WORLD task id as this is unique
     pprint.add("Number of files on task %d : %d\n",
@@ -98,7 +119,7 @@ void Pfile::info(const Pworld& pworld, Pprint& pprint) const
           pprint.add(" ");
         }
   
-        if (isopen(file))
+        if (xisopen(file))
         {
           pprint.add("t          %s\n",m_fstat[file]);
         } else {
@@ -108,7 +129,7 @@ void Pfile::info(const Pworld& pworld, Pprint& pprint) const
     }
     pprint.store();
 
-  //Add an empy message for all the shared tasks that aren't master
+  //Add an empy message for all the shared tasks that aren't doing IO
   } else {
     pprint.addstore("%c",(char)0);
     //pprint.addstore("%c",(char)0);
@@ -120,28 +141,42 @@ void Pfile::info(const Pworld& pworld, Pprint& pprint) const
 //-----------------------------------------------------------------------
 int Pfile::sadd(const Pworld& pworld, const char* fname)
 {
-  //look for file in list
-  if (make_name(pworld,fname) == 0)
+  if (pworld.mpi_doesIO)
   {
-    int loc = file_loc(m_buf);
-    if (loc == -1) {loc = add(m_buf);} 
-    return loc;
-  } else {
-    return PFILE_ERR_SLEN;
+    //look for file in list
+    if (make_name(pworld,fname) == 0)
+    {
+      int loc = xfile_loc(m_buf);
+      if (loc == -1) {loc = xadd(m_buf);} 
+      return loc;
+    } else {
+      return PFILE_ERR_SLEN;
+    }
   }
+  return -1;
 }
 
 //-----------------------------------------------------------------------
 // add -- add file, given we already have name and checked if it exists 
 //-----------------------------------------------------------------------
-int Pfile::add(const char* fname)
+int Pfile::add(const Pworld& pworld, const char* fname)
 {
-  m_nfiles++;
-  m_isopen.push_back({false});  
-  m_fio.push_back({NULL,0});
-  m_fname.push_back(fname);
-  m_fstat.push_back("c");
-  return m_nfiles-1; 
+  if (pworld.mpi_doesIO) {return xadd(fname);}
+  return -1;
+}
+
+//-----------------------------------------------------------------------
+// xadd -- add file, given we already have name and checked if it exists 
+// no pworld check
+//-----------------------------------------------------------------------
+int Pfile::xadd(const char* fname)
+{
+    m_nfiles++;
+    m_isopen.push_back({false});  
+    m_fio.push_back({NULL,0});
+    m_fname.push_back(fname);
+    m_fstat.push_back("c");
+    return m_nfiles-1; 
 }
 
 //-----------------------------------------------------------------------
@@ -149,26 +184,49 @@ int Pfile::add(const char* fname)
 //-----------------------------------------------------------------------
 int Pfile::sremove(const Pworld& pworld, const char* fname)
 {
-  const int stat = make_name(pworld,fname);
-  if (stat == 0)
+  if (pworld.mpi_doesIO)
   {
-    int loc = file_loc(m_buf);
-  
-    if (loc != -1)
+    const int stat = make_name(pworld,fname);
+    if (stat == 0)
     {
-      remove(loc);
-    }
-    return (loc != -1) ? 0 : 1;
+      int loc = xfile_loc(m_buf);
+  
+      if (loc != -1)
+      {
+        xremove(loc);
+      }
+      return (loc != -1) ? 0 : 1;
 
-  } else {
-    return PFILE_ERR_SLEN;
-  }
+    } else {
+      return PFILE_ERR_SLEN;
+    }
+  } 
+  return 0;
 }
 
 //-----------------------------------------------------------------------
 // remove -- remove a file from the filesystem based on file id
 //-----------------------------------------------------------------------
-int Pfile::remove(const int fid)
+int Pfile::remove(const Pworld& pworld, const int fid)
+{
+  if (pworld.mpi_doesIO)
+  {
+    if (m_fio[fid].fptr != NULL) {fclose(m_fio[fid].fptr);}
+    m_fio.erase(m_fio.begin()+fid);
+    m_isopen.erase(m_isopen.begin()+fid);
+    m_fname.erase(fid);
+    m_fstat.erase(fid);
+    m_nfiles--;
+    return 0;
+  } 
+  return 0;
+}
+
+//-----------------------------------------------------------------------
+// xremove -- remove a file from the filesystem based on file id, 
+// no pworld check
+//-----------------------------------------------------------------------
+int Pfile::xremove(const int fid)
 {
   if (m_fio[fid].fptr != NULL) {fclose(m_fio[fid].fptr);}
   m_fio.erase(m_fio.begin()+fid);
@@ -184,18 +242,22 @@ int Pfile::remove(const int fid)
 //-----------------------------------------------------------------------
 int Pfile::sopen(const Pworld& pworld, const char* fname, const char* fstat)
 {
-  if (make_name(pworld,fname) == 0)
+  if (pworld.mpi_doesIO)
   {
-    int loc = file_loc(m_buf);
-    if (loc != -1)
+    if (make_name(pworld,fname) == 0)
     {
-      return open(loc,fstat);
+      int loc = xfile_loc(m_buf);
+      if (loc != -1)
+      {
+        return xopen(loc,fstat);
+      } else {
+        return PFILE_ERR_OPEN;
+      }
     } else {
-      return PFILE_ERR_OPEN;
+      return PFILE_ERR_SLEN;
     }
-  } else {
-    return PFILE_ERR_SLEN;
   }
+  return 0;
 } 
 
 //-----------------------------------------------------------------------
@@ -204,81 +266,106 @@ int Pfile::sopen(const Pworld& pworld, const char* fname, const char* fstat)
 //-----------------------------------------------------------------------
 int Pfile::saddopen(const Pworld& pworld, const char* fname, const char* fstat)
 {
-  int stat = 0;
-  if (make_name(pworld,fname) == 0)
+  if (pworld.mpi_doesIO)
   {
-    int loc = file_loc(m_buf);
-
-    //If file doesn't exist
-    if (loc == -1)
+    int stat = 0;
+    if (make_name(pworld,fname) == 0)
     {
-      stat = add(m_buf); 
-      if (stat != 0) return stat;
-      loc = m_nfiles-1;
-      stat = open(loc,fstat);    
- 
-    //file exists, error
-    } else {
-      stat = PFILE_ERR_OPEN;
-    }
-  } else {
-    return PFILE_ERR_SLEN;
-  }
+      int loc = xfile_loc(m_buf);
 
-  return stat; 
-}
-//-----------------------------------------------------------------------
-// open -- open with with internal id 
-//-----------------------------------------------------------------------
-int Pfile::open(const int fid, const char* fstat) 
-{
-  int stat=0;
-
-  if (fid >= 0 && fid < m_nfiles)
-  {
-
-    //if file is closed  
-    if (!isopen(fid))
-    {
-      strncpy(m_fstat[fid],fstat,PFILE_LEN);
-      m_fio[fid].fptr = fopen(m_fname[fid],m_fstat[fid]);
-
-      //check for successful open
-      if (m_fio[fid].fptr != NULL)
+      //If file doesn't exist
+      if (loc == -1)
       {
-        m_fio[fid].fpos = 0;
-        m_isopen[fid].val = true;
-
-      //bad open
+        stat = xadd(m_buf); 
+        if (stat != 0) return stat;
+        loc = m_nfiles-1;
+        stat = xopen(loc,fstat);    
+ 
+      //file exists, error
       } else {
-        stat = PFILE_ERR_NULL; 
-      }     
-
-    //File is open
+        stat = PFILE_ERR_OPEN;
+      }
     } else {
-      stat = PFILE_ERR_OPEN;
+      return PFILE_ERR_SLEN;
     }
-  } else {
-    stat = PFILE_ERR_OPEN;
+    return stat; 
   }
-
-  return stat;
+  return -1;
 }
 
 //-----------------------------------------------------------------------
-// close_all -- close all files 
+// open -- open with with internal id, no pworld check 
 //-----------------------------------------------------------------------
-int Pfile::close_all()
+int Pfile::open(const Pworld& pworld, const int fid, const char* fstat) 
 {
-  int stat = 0;
-  for (int file=0;file<m_nfiles;file++) 
+  if (pworld.mpi_doesIO)
   {
-    if (isopen(file))
+    return xopen(fid,fstat);
+  }
+  return 0;
+}
+
+//-----------------------------------------------------------------------
+// xopen -- open with with internal id, no pworld check 
+//-----------------------------------------------------------------------
+int Pfile::xopen(const int fid, const char* fstat) 
+{
+    int stat=0;
+
+    if (fid >= 0 && fid < m_nfiles)
     {
-      stat += close(file);
+
+      //if file is closed  
+      if (!xisopen(fid))
+      {
+        strncpy(m_fstat[fid],fstat,PFILE_LEN);
+        m_fio[fid].fptr = fopen(m_fname[fid],m_fstat[fid]);
+
+        //check for successful open
+        if (m_fio[fid].fptr != NULL)
+        {
+          m_fio[fid].fpos = 0;
+          m_isopen[fid].val = true;
+
+        //bad open
+        } else {
+          stat = PFILE_ERR_NULL; 
+        }     
+  
+      //File is open
+      } else {
+        stat = PFILE_ERR_OPEN;
+      }
+    } else {
+      stat = PFILE_ERR_OPEN;
     }
-  };
-  return (stat == 0) ? 0 : PFILE_ERR_CLOSE;
+
+    return stat;
+}
+
+//-----------------------------------------------------------------------
+// close_all -- close all files, 
+//-----------------------------------------------------------------------
+int Pfile::close_all(const Pworld& pworld)
+{
+  if (pworld.mpi_doesIO) {return xclose_all();}
+  return 0;
+}
+
+//-----------------------------------------------------------------------
+// xclose_all -- close all files, no pworld check 
+//-----------------------------------------------------------------------
+int Pfile::xclose_all()
+{
+    int stat = 0;
+    for (int file=0;file<m_nfiles;file++) 
+    {
+      if (xisopen(file))
+      {
+        stat += xclose(file);
+      }
+    }
+    return (stat == 0) ? 0 : PFILE_ERR_CLOSE;
 }
 
 //-----------------------------------------------------------------------
@@ -286,31 +373,43 @@ int Pfile::close_all()
 //-----------------------------------------------------------------------
 int Pfile::sclose(const Pworld& pworld, const char* fname)
 {
-  int stat = 0;
-  if (make_name(pworld,fname) == 0)
+  if (pworld.mpi_doesIO)
   {
-    int loc = file_loc(m_buf);
-    if (loc != -1)
+    int stat = 0;
+    if (make_name(pworld,fname) == 0)
     {
-      stat = close(loc); 
+      int loc = xfile_loc(m_buf);
+      if (loc != -1)
+      {
+        stat = xclose(loc); 
+      } else {
+        stat = PFILE_ERR_CLOSE; 
+      }
+      return stat;
     } else {
-      stat = PFILE_ERR_CLOSE; 
+      return PFILE_ERR_SLEN;
     }
-    return stat;
-  } else {
-    return PFILE_ERR_SLEN;
   }
+  return 0;
 }
-
 //-----------------------------------------------------------------------
 // close -- close file with internal id 
 //-----------------------------------------------------------------------
-int Pfile::close(const int fid)
+int Pfile::close(const Pworld& pworld, const int fid)
+{
+  if (pworld.mpi_doesIO) {xclose(fid);}
+  return 0;
+}
+
+//-----------------------------------------------------------------------
+// xclose -- close file with internal id, no pworld check 
+//-----------------------------------------------------------------------
+int Pfile::xclose(const int fid)
 {
   int stat = 0;
 
   //if file is open 
-  if (isopen(fid))
+  if (xisopen(fid))
   {
     stat = fclose(m_fio[fid].fptr);
     m_fio[fid].fptr = NULL;
@@ -324,7 +423,6 @@ int Pfile::close(const int fid)
   } else {
     stat = PFILE_ERR_CLOSE;
   }
-
   return stat;
 }
 
@@ -333,50 +431,67 @@ int Pfile::close(const int fid)
 //-----------------------------------------------------------------------
 int Pfile::serase(const Pworld& pworld, const char* fname)
 {
-  int stat = 0;
-  if (make_name(pworld,fname) == 0)
+  if (pworld.mpi_doesIO)
   {
-    int loc = file_loc(m_buf);
-
-    //if file is in filesystem
-    if (loc != -1)
+    int stat = 0;
+    if (make_name(pworld,fname) == 0)
     {
-      stat = erase(loc);
-    //file is not in filesystem
-    } else {
-      stat = PFILE_ERR_ERASE;
-    }
+      int loc = xfile_loc(m_buf);
+
+      //if file is in filesystem
+      if (loc != -1)
+      {
+        stat = xerase(loc);
+      //file is not in filesystem
+      } else {
+        stat = PFILE_ERR_ERASE;
+      }
   
-    return stat; 
-  } else {
-    return PFILE_ERR_SLEN;
+      return stat; 
+    } else {
+      return PFILE_ERR_SLEN;
+    }
   }
+  return 0;
 }
 
 //-----------------------------------------------------------------------
 // erase file with internal location 
 //-----------------------------------------------------------------------
-int Pfile::erase(const int fid)
+int Pfile::erase(const Pworld& pworld, const int fid)
 {
-    int stat = close(fid);   
-    //if (stat != 0) {return stat;}
-    stat += std::remove(m_fname[fid]); //C remove function
-    //if (stat != 0) {return PFILE_ERR_ERASE;}
-    stat += remove(fid); //internal remove function
-    return (stat == 0) ? 0 : PFILE_ERR_ERASE; 
+  if (pworld.mpi_doesIO) {return xerase(fid);}
+  return 0;
+}
+
+//-----------------------------------------------------------------------
+// xerase -- erase file with internal location, no pworld check 
+//-----------------------------------------------------------------------
+int Pfile::xerase(const int fid)
+{
+  int stat = xclose(fid);   
+  //if (stat != 0) {return stat;}
+  stat += std::remove(m_fname[fid]); //C remove function
+  //if (stat != 0) {return PFILE_ERR_ERASE;}
+  stat += xremove(fid); //internal remove function
+  return (stat == 0) ? 0 : PFILE_ERR_ERASE; 
 }
 
 //-----------------------------------------------------------------------
 // erase_all -- erase all files on filesystem 
 //-----------------------------------------------------------------------
-int Pfile::erase_all()
+int Pfile::erase_all(const Pworld& pworld)
 {
-  int stat = 0;
-  for (int file=0;file<m_nfiles;file++)
+  if (pworld.mpi_doesIO)
   {
-    stat += erase(file); 
+    int stat = 0;
+    for (int file=0;file<m_nfiles;file++)
+    {
+      stat += erase(pworld,file); 
+    }
+    return (stat == 0) ? 0 : PFILE_ERR_ERASE;
   }
-  return (stat == 0) ? 0 : PFILE_ERR_ERASE;
+  return 0;
 }
 
 //-----------------------------------------------------------------------
@@ -384,21 +499,34 @@ int Pfile::erase_all()
 //-----------------------------------------------------------------------
 int Pfile::make_name(const Pworld& pworld, const char* fname)
 {
-  const int len = strlen(fname);
-  if (len < PFILE_LEN) 
+  if (pworld.mpi_doesIO)
   {
-    memset(m_buf,(char)0,sizeof(char)*PFILE_LEN);
-    snprintf(m_buf,PFILE_LEN,"%s%d",fname,pworld.mpi_world_task_id); 
-    return 0; 
-  } else {
-    return 1;
+    const int len = strlen(fname);
+    if (len < PFILE_LEN) 
+    {
+      memset(m_buf,(char)0,sizeof(char)*PFILE_LEN);
+      snprintf(m_buf,PFILE_LEN,"%s%d",fname,pworld.mpi_world_task_id); 
+      return 0; 
+    } else {
+      return 1;
+    }
   }
+  return 0;
 }
 
 //-----------------------------------------------------------------------
 // file_loc -- find location of file by internal string 
 //-----------------------------------------------------------------------
-int Pfile::file_loc(const char* fname) const
+int Pfile::file_loc(const Pworld& pworld, const char* fname) const
+{
+  if (pworld.mpi_doesIO) {return xfile_loc(fname);}
+  return -1;
+}
+
+//-----------------------------------------------------------------------
+// xfile_loc -- find location of file by internal string, no pworld check 
+//-----------------------------------------------------------------------
+int Pfile::xfile_loc(const char* fname) const
 {
   int loc = -1;
   for (int file=0;file<m_nfiles;file++)
@@ -429,6 +557,7 @@ void Pfile::read(const int file, const long pos, void* data,
   fread(data,size,num,m_fio[file].fptr);
   m_fio[file].fpos += (long) size*num;
 }
+
 //-----------------------------------------------------------------------
 // seek -- go to some position in a file, but check we are not already
 //  there first
@@ -447,31 +576,39 @@ void Pfile::seek(const int file, const long pos)
 //-----------------------------------------------------------------------
 int Pfile::sflush(const Pworld& pworld, const char* fname) 
 {
-  int stat = 0;
-  if (make_name(pworld,fname) == 0)
+  if (pworld.mpi_doesIO)
   {
-    int loc = file_loc(m_buf);
-  
-    if (stat != -1)
+    int stat = 0;
+    if (make_name(pworld,fname) == 0)
     {
-      fflush(m_fio[loc].fptr);
+      int loc = xfile_loc(m_buf);
+  
+      if (stat != -1)
+      {
+        fflush(m_fio[loc].fptr);
+      } else {
+        stat = PFILE_ERR_FLUSH; 
+      }
+      return stat;
     } else {
-      stat = PFILE_ERR_FLUSH; 
+      return PFILE_ERR_SLEN;
     }
-    return stat;
-  } else {
-    return PFILE_ERR_SLEN;
   }
+  return 0;
 }
 
 //-----------------------------------------------------------------------
 // flush -- flush with internal id 
 //-----------------------------------------------------------------------
-int Pfile::flush(const int fid) const
+int Pfile::flush(const Pworld& pworld, const int fid) const
 {
-  int stat = 0;
-  fflush(m_fio[fid].fptr);
-  return stat;
+  if (pworld.mpi_doesIO)
+  {
+    int stat = 0;
+    fflush(m_fio[fid].fptr);
+    return stat;
+  }
+  return 0;
 }
 
 //-----------------------------------------------------------------------
@@ -479,13 +616,17 @@ int Pfile::flush(const int fid) const
 //-----------------------------------------------------------------------
 int Pfile::get_fid(const Pworld& pworld, const char* fname)
 {
-  if (make_name(pworld,fname) == 0)
-  { 
-    int loc = file_loc(m_buf);
-    return loc;
-  } else {
-    return PFILE_ERR_SLEN;
+  if (pworld.mpi_doesIO)
+  {
+    if (make_name(pworld,fname) == 0)
+    { 
+      int loc = xfile_loc(m_buf);
+      return loc;
+    } else {
+      return PFILE_ERR_SLEN;
+    }
   }
+  return -1;
 }
 
 //-----------------------------------------------------------------------
@@ -500,7 +641,7 @@ int Pfile::save(const Pworld& pworld)
   if (pworld.mpi_shared_ismaster)
   {
     //Open file
-    if (isopen(m_rootid).val) {stat = close(m_rootid);}
+    if (xisopen(m_rootid)) {stat = close(m_rootid);}
     if (stat != 0) {return stat;}
     if (open(m_rootid,"w+b") != 0) {return PFILE_ERR_OPEN;}  
 

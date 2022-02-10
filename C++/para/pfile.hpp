@@ -5,12 +5,16 @@
  *  .hpp file for Pfile, which handles a (possibly parallel) filesystem
  *  Also contains the PFIO struct, which 
  *
- * In the following, there are two kinds of member functions. Those that
+ * In the following, there are three kinds of member functions. Those that
  *   take in an ``external'' name, which is converted into an internal 
- *   id, and those that take just the internal id. 
+ *   id, are marked with "s" to start. Internal functions, which generally
+ *   only take internal file ids, either start with no extra letter, or the 
+ *   letter "x" to indicate that they do not check if this mpi task is in 
+ *   charge of IO. 
  *
- *   The former are marked with an "s" at the start of the function name
- *   The latter are more efficient and should be used in general
+ *  NOTE : seek,get_pos,write, and read do *NOT* have an internal safety 
+ *         wrapper for checking if the MPI task is in charge of file IO, 
+ *         due to the need for speed in these functions 
  *
  * Init must be called after construction
  *
@@ -95,7 +99,7 @@ class Pfile
   private: 
   //Data
   std::vector<Pfio>        m_fio;	//file io struct list
-  std::vector<Pbool>        m_isopen;	//bools for tracking if file is open
+  std::vector<Pbool>       m_isopen;	//bools for tracking if file is open
   Strvec<PFILE_LEN>        m_fname;	//file names
   Strvec<PFILE_LEN>        m_fstat;	//file status
   char                     m_buf[PFILE_LEN];
@@ -111,43 +115,51 @@ class Pfile
   int init(const Pworld& pworld);
 
   //Add a file
-  // Note that both sadd and add return the file id (or -1 on error)
+  // Note that both sadd and add return the file id (or -val on error)
   int sadd(const Pworld& pworld, const char* fname);
-  int add(const char* fname); //add if we already know name/loc
+  int add(const Pworld& pworld, const char* fname); 
+  int xadd(const char* fname); 
 
   //Remove a file
   int sremove(const Pworld& pworld, const char* fname);
-  int remove(const int fid); //already have name/loc
+  int remove(const Pworld& pworld, const int fid); 
+  int xremove(const int fid); 
 
   //Check if file is open
   bool issopen(const Pworld& pworld, const char* fname);
-  bool isopen(const int fid) const; 
+  bool isopen(const Pworld& pworld, const int fid) const; 
+  bool xisopen(const int fid) const; 
 
   //Open a file
   //saddopen returns the internal file id on successful exit, and error on not 
   int sopen(const Pworld& pworld, const char* fname, const char* fstat);
   int saddopen(const Pworld& pworld, const char* fname, const char* fstat);
-  int open(const int fid, const char* fstat); 
+  int open(const Pworld& pworld, const int fid, const char* fstat); 
+  int xopen(const int fid, const char* fstat); 
   
   //Close a file
   int sclose(const Pworld& pworld, const char* fname);
-  int close(const int fid);
-  int close_all();
+  int close(const Pworld& pworld, const int fid);
+  int xclose(const int fid);
+  int close_all(const Pworld& pworld);
+  int xclose_all();
 
   //erase files -- close, delete, remove
   int serase(const Pworld& pworld, const char* fname);
-  int erase(const int fid);
-  int erase_all(); 
+  int erase(const Pworld& pworld, const int fid);
+  int xerase(const int fid);
+  int erase_all(const Pworld& pworld); 
 
   //Flush file buffer
   int sflush(const Pworld& pworld, const char* fname);
-  int flush(const int fid) const;
+  int flush(const Pworld& pworld, const int fid) const;
 
   //Get file id within fsys
   int get_fid(const Pworld& pworld, const char* fname);
 
   //locate file id from string
-  int file_loc(const char* fname) const;
+  int file_loc(const Pworld& pworld, const char* fname) const;
+  int xfile_loc(const char* fname) const;
   
   //Make file name with tasks
   int make_name(const Pworld& pworld, const char* fname);
@@ -174,7 +186,7 @@ class Pfile
    
   //recover filesystem info
 //  int recover(const Pworld& pworld);
-  
+
 };
 
 
