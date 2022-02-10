@@ -1,18 +1,21 @@
 include ../make.config
 
-all : test.o test4.o # test2.o test3.o test4.o svd.o
+all : test.exe test2.exe
 
-test.o : test.cpp 
-	$(CPP) $(CPPFLAGS) test.cpp -I$(incdir) $(objdir)/*.o $(LINAL) -o test.o
+test.exe : test.cpp 
+	$(CPP) $(CPPFLAGS) test.cpp -I$(incdir) $(objdir)/*.o -o test.exe $(libdir)/para.a $(OMPLINK) 
 
-test2.o : test2.cpp 
-	$(CPP) $(CPPFLAGS) test2.cpp -I$(incdir) $(objdir)/*.o $(LINAL) -o test2.o
+test2.exe : test2.cpp 
+	$(CPP) $(CPPFLAGS) test.cpp -I$(incdir) $(objdir)/*.o -o test2.exe $(libdir)/para.a $(OMPLINK) 
 
-test3.o : test3.cpp 
-	$(CPP) $(CPPFLAGS) test3.cpp -I$(incdir) $(objdir)/*.o $(LINAL) -o test3.o -llapack -lblas
+#test3.o : test3.cpp 
+#	$(CPP) $(CPPFLAGS) test3.cpp -I$(incdir) $(objdir)/*.o $(LINAL) -o test3.o -llapack -lblas
 
-test4.o : test4.cpp 
-	$(CPP) $(CPPFLAGS) test4.cpp -I$(incdir) $(objdir)/*.o $(LINAL) -o test4.o -llapack -lblas
+#test4.o : test4.cpp 
+#	$(CPP) $(CPPFLAGS) test4.cpp -I$(incdir) $(objdir)/*.o $(LINAL) -o test4.o -llapack -lblas
 
-svd.o : svd.cpp 
-	$(CPP) $(CPPFLAGS) svd.cpp -I$(incdir) $(objdir)/*.o $(LINAL) -o svd.o -llapack -lblas
+#svd.o : svd.cpp 
+#	$(CPP) $(CPPFLAGS) svd.cpp -I$(incdir) $(objdir)/*.o $(LINAL) -o svd.o -llapack -lblas
+
+clean:
+	rm *.o *.exe

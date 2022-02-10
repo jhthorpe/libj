@@ -1,37 +1,61 @@
 #include <stdio.h>
-#include "libj.hpp"
+#include "para.hpp"
+#include <mpi.h>
 
 int main()
 {
-  const long M = 5;
-  vec<double> V1;
-  vec<double> V2;
-  vec<double> V3;
+  int stat;
+  Pworld pworld; //general info
+  pworld.init();
+
+  if (pworld.mpi_shared_ismaster)
+  {
+    printf("master of shared sees %d tasks\n",pworld.mpi_shared_num_tasks);  
+  }
+
+  //Pprint always sees the WORLD
+  Pprint pprint; //print buffers
+  pprint.init(pworld);
+
+  Pfile  pfile;
+  pfile.init(pworld);
+
+  const int fid = pfile.sadd(pworld,"ff");
+  stat = pfile.open(pworld,fid,"w+b");
+
+  pfile.info(pworld,pprint);
+  pprint.print_all(pworld);
+  pprint.reset();
+
+  if (pworld.mpi_doesIO)
+  {
+    int arr[10];
+    for (int i=0;i<10;i++)
+    {
+      arr[i] = pworld.mpi_world_task_id + i;
+    }
+    pfile.write(fid,0,arr,sizeof(int),10);
+
+    for (int i=0;i<10;i++)
+    {
+      pfile.read(fid,0,arr,sizeof(int),10); 
+    }
   
-  V1.aligned_allocate(64,M);
-  V2.aligned_allocate(64,M);
-  V3.aligned_allocate(64,M);
+    pprint.add("task #%d arr has : ",pworld.mpi_world_task_id);
+    for (int i=0;i<10;i++)
+    {
+      pprint.add("%d ",arr[i]);
+    }
+  }
+  pprint.addstore("\n");
+  pprint.print_all(pworld);
+  pprint.reset();
 
-  V1(0) = 1;
-  V1(1) = 2;
-  V1(2) = 3;
-  V1(3) = 4;
-  V1(4) = 5;
-  
-  V2(0) = 2;
-  V2(1) = 3;
-  V2(2) = 4;
-  V2(3) = 5;
-  V2(4) = 6;
+  //close all files and save
+  pfile.save(pworld);
 
-
-  printf("\nv1\n");
-  V1.print();
-  printf("\nv2\n");
-  V2.print();
-  simd_axpby<double>(M,0.1,&V1[0],1,&V2[0]);
-  printf("\nnewv2\n");
-  V2.print();
-  
-
+  pprint.destroy(pworld); //destroy the print buffers
+  pworld.destroy(); //this must always be called last
+  return 0;
 }
+

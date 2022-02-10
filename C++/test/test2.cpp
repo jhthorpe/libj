@@ -1,38 +1,54 @@
-#include "libj.hpp"
-#include "def.hpp"
 #include <stdio.h>
+#include "para.hpp"
+#include <mpi.h>
 
 int main()
 {
-  const long N = 5;
-  vec<double>W;
-  vec<double>X;
-  vec<double>Y;
-  vec<double>Z;
-  W.aligned_allocate(DOUBLE_ALIGN,N);
-  X.aligned_allocate(DOUBLE_ALIGN,N);
-  Y.aligned_allocate(DOUBLE_ALIGN,N);
-  Z.aligned_allocate(DOUBLE_ALIGN,N);
+  int stat;
+  Pworld pworld; //general info
+  pworld.init();
 
-  double dp;
+  //Pprint always sees the WORLD
+  Pprint pprint; //print buffers
+  pprint.init(pworld);
 
-  W = 1;
-  X = 2;
-  Y = 3;
+  Pfile  pfile;
+  pfile.init(pworld);
 
-  printf("\n W \n");
-  W.print();
-  printf("\n X \n");
-  X.print();
-  printf("\n Y \n");
-  Y.print();
-  simd_wxy_mul<double,DOUBLE_ALIGN>(N,&W[0],&X[0],&Y[0],&Z[0]);
-  printf("\n Z \n");
-  Z.print();
+  pfile.recover(pworld);
 
-  printf("\n reduction is %lf \n",simd_reduction_add<double,DOUBLE_ALIGN>(N,&Z[0]));  
+  pfile.info(pworld,pprint);
+  pprint.print_all(pworld);
+  pprint.reset();
 
-  printf("\n other reduction is %lf \n",simd_dotwxy<double,DOUBLE_ALIGN>(N,&W[0],&X[0],&Y[0]));
+  const int fid = pprint.get_fid(pworld,"ff");
 
+  if (pworld.mpi_doesIO)
+  {
+    int arr[10];
+    for (int i=0;i<10;i++)
+    {
+      arr[i] = pworld.mpi_world_task_id + i;
+    }
+    pfile.write(fid,0,arr,sizeof(int),10);
+
+    for (int i=0;i<10;i++)
+    {
+      pfile.read(fid,0,arr,sizeof(int),10); 
+    }
+  
+    pprint.add("task #%d arr has : ",pworld.mpi_world_task_id);
+    for (int i=0;i<10;i++)
+    {
+      pprint.add("%d ",arr[i]);
+    }
+  }
+  pprint.addstore("\n");
+  pprint.print_all(pworld);
+  pprint.reset();
+
+  pprint.destroy(pworld); //destroy the print buffers
+  pworld.destroy(); //this must always be called last
   return 0;
 }
+
