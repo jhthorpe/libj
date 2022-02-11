@@ -2,56 +2,30 @@
  * pfile.hpp
  *  JHT, Febuary 8, 2022: created
  *
- *  .hpp file for Pfile, which handles a (possibly parallel) filesystem
- *  Also contains the PFIO struct, which 
- *
- * In the following, there are three kinds of member functions. Those that
- *   take in an ``external'' name, which is converted into an internal 
- *   id, are marked with "s" to start. Internal functions, which generally
- *   only take internal file ids, either start with no extra letter, or the 
- *   letter "x" to indicate that they do not check if this mpi task is in 
- *   charge of IO. 
- *
- *  NOTE : seek,get_pos,write, and read do *NOT* have an internal safety 
- *         wrapper for checking if the MPI task is in charge of file IO, 
- *         due to the need for speed in these functions 
- *
- * Init must be called after construction
- *
- * USAGE
- * ---------------
- * //Initialization
- * const int stat = pfile.init(pworld);
- *
- * //To add files
- * const int fid = pfile.sadd(pworld,"filename"); 
- *
- * //To find the internal file id
- * const int fid = pfile.get_fid(pworld,"filename");
- *
- * //To remove a file from the list, but NOT delete it
- * stat = pfile.sremove(pworld,"filename"); 
- * stat = pfile.remove(file_id);
- *
- * //To open or close a file
- * stat = pfile.sopen(pworld,"filename","w+b");
- * stat = pfile.open(fid,"w+b"); 
- * stat = pfile.sclose(pworld,"filename");
- * stat = pfile.close(fid);
- * stat = close_all();
- *
- * //To add a file and open it
- * //Note that fid >= 0 is the file_id, and fid < 0 is error message
- * const int fid = pfile.saddopen(pworld,"filename","w+b");
- *
- * //to remove a file from both the filesystem and disk
- * stat = pfile.serase(pworld,"filename");
- * stat = pfile.erase(file_id);
- *
- * //store filesystem info as message in pprint
- * pprint.store();
- * pfile.info(pworld,pprint);
- *
+   .hpp file for Pfile, which handles a (possibly parallel) filesystem
+   Also contains the PFIO struct, which 
+ 
+  In the following, there are three kinds of member functions. Those that
+    take in an ``external'' name, which is converted into an internal 
+    id, are marked with "s" to start. Internal functions, which generally
+    only take internal file ids, either start with no extra letter, or the 
+    letter "x" to indicate that they do not check if this mpi task is in 
+    charge of IO. 
+ 
+   NOTE : seek,get_pos,write, and read do *NOT* have an internal safety 
+          wrapper for checking if the MPI task is in charge of file IO, 
+          due to the need for speed in these functions 
+ 
+  Init must be called after construction
+
+  General usage
+
+  The external name subroutines, those that begin with "s", are safest.
+  The internal id subroutines, which take pworld as a parameter, can be
+    called by any MPI task (as can the "s" subroutines).
+  The "unsafe" subroutines, those that begin with "x", and write,read,
+    seek, get_pos, should only be called by a task which does the IO. 
+ 
 ------------------------------------------------------------------------*/
 
 /*
@@ -116,17 +90,19 @@ class Pfile
 
   //Add a file
   // Note that both sadd and add return the file id (or -val on error)
+  // add needs the *internal* file name
   int sadd(const Pworld& pworld, const char* fname);
   int add(const Pworld& pworld, const char* fname); 
   int xadd(const char* fname); 
 
   //Remove a file
+  // Note that sadd returns the file id (or -val on error)
   int sremove(const Pworld& pworld, const char* fname);
   int remove(const Pworld& pworld, const int fid); 
   int xremove(const int fid); 
 
   //Check if file is open
-  bool issopen(const Pworld& pworld, const char* fname);
+  bool sisopen(const Pworld& pworld, const char* fname);
   bool isopen(const Pworld& pworld, const int fid) const; 
   bool xisopen(const int fid) const; 
 
@@ -155,13 +131,13 @@ class Pfile
   int flush(const Pworld& pworld, const int fid) const;
 
   //Get file id within fsys
-  int get_fid(const Pworld& pworld, const char* fname);
+  int sget_fid(const Pworld& pworld, const char* fname);
 
   //locate file id from string
   int file_loc(const Pworld& pworld, const char* fname) const;
   int xfile_loc(const char* fname) const;
   
-  //Make file name with tasks
+  //Make file name with world task id
   int make_name(const Pworld& pworld, const char* fname);
   
   //info

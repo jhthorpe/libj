@@ -26,7 +26,7 @@ int Pworld::init()
 
     //MPI shared setup
     MPI_Comm_split_type(comm_world,MPI_COMM_TYPE_SHARED,
-                        0,mpi_info,&comm_shared);
+                        mpi_world_task_id,mpi_info,&comm_shared);
     MPI_Comm_size(comm_shared,&mpi_shared_num_tasks);
     MPI_Comm_rank(comm_shared,&mpi_shared_task_id);
     mpi_shared_ismaster = (mpi_shared_task_id != 0) ? false : true; 
@@ -71,4 +71,17 @@ int Pworld::destroy()
     MPI_Finalize(); 
   #endif
   return 0;
+}
+
+//-----------------------------------------------------------------
+// error 
+//-----------------------------------------------------------------
+void Pworld::error(const int stat)
+{
+  if (mpi_world_ismaster) {printf("pworld error status %d\n",stat);}
+  #if defined LIBJ_MPI
+    MPI_Barrier(comm_world);
+  #endif
+  destroy(); 
+  exit(stat);
 }

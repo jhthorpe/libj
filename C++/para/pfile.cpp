@@ -40,7 +40,7 @@ int Pfile::init(const Pworld& pworld)
 //-----------------------------------------------------------------------
 // issopen -- check if file is open given external name 
 //-----------------------------------------------------------------------
-bool Pfile::issopen(const Pworld& pworld, const char* fname) 
+bool Pfile::sisopen(const Pworld& pworld, const char* fname) 
 {
   if (pworld.mpi_doesIO)
   {
@@ -181,24 +181,26 @@ int Pfile::xadd(const char* fname)
 //-----------------------------------------------------------------------
 int Pfile::sremove(const Pworld& pworld, const char* fname)
 {
+  int stat = 0;
   if (pworld.mpi_doesIO)
   {
-    const int stat = make_name(pworld,fname);
+    stat = make_name(pworld,fname);
     if (stat == 0)
     {
       int loc = xfile_loc(m_buf);
   
+      //file exists
       if (loc != -1)
       {
-        xremove(loc);
+        stat = xremove(loc);
+        stat = (stat == 0) ? loc : stat;
       }
-      return (loc != -1) ? 0 : 1;
 
     } else {
-      return PFILE_ERR_SLEN;
+      stat = PFILE_ERR_SLEN;
     }
   } 
-  return 0;
+  return stat;
 }
 
 //-----------------------------------------------------------------------
@@ -235,10 +237,12 @@ int Pfile::xremove(const int fid)
 }
 
 //-----------------------------------------------------------------------
-// open -- opens a file with external name
+// open -- opens a file with external name. Returns internal file ID
+//  or negative error if something goes wrong 
 //-----------------------------------------------------------------------
 int Pfile::sopen(const Pworld& pworld, const char* fname, const char* fstat)
 {
+  int stat = -1;
   if (pworld.mpi_doesIO)
   {
     if (make_name(pworld,fname) == 0)
@@ -246,15 +250,16 @@ int Pfile::sopen(const Pworld& pworld, const char* fname, const char* fstat)
       int loc = xfile_loc(m_buf);
       if (loc != -1)
       {
-        return xopen(loc,fstat);
+        stat = xopen(loc,fstat);
+        stat = (stat == 0) ? loc : stat;
       } else {
-        return PFILE_ERR_OPEN;
+        stat =  PFILE_ERR_OPEN;
       }
     } else {
-      return PFILE_ERR_SLEN;
+      stat =  PFILE_ERR_SLEN;
     }
   }
-  return 0;
+  return stat;
 } 
 
 //-----------------------------------------------------------------------
@@ -263,9 +268,9 @@ int Pfile::sopen(const Pworld& pworld, const char* fname, const char* fstat)
 //-----------------------------------------------------------------------
 int Pfile::saddopen(const Pworld& pworld, const char* fname, const char* fstat)
 {
+  int stat = -1;
   if (pworld.mpi_doesIO)
   {
-    int stat = 0;
     if (make_name(pworld,fname) == 0)
     {
       int loc = xfile_loc(m_buf);
@@ -273,21 +278,20 @@ int Pfile::saddopen(const Pworld& pworld, const char* fname, const char* fstat)
       //If file doesn't exist
       if (loc == -1)
       {
-        stat = xadd(m_buf); 
-        if (stat != 0) return stat;
-        loc = m_nfiles-1;
+        loc = xadd(m_buf); 
+        if (loc < 0) return PFILE_ERR_OPEN;
         stat = xopen(loc,fstat);    
+        stat = (stat == 0) ? loc : stat;       
  
       //file exists, error
       } else {
         stat = PFILE_ERR_OPEN;
       }
     } else {
-      return PFILE_ERR_SLEN;
+      stat = PFILE_ERR_SLEN;
     }
-    return stat; 
   }
-  return -1;
+  return stat;
 }
 
 //-----------------------------------------------------------------------
@@ -366,7 +370,7 @@ int Pfile::xclose_all()
 }
 
 //-----------------------------------------------------------------------
-// sclose -- close file with external name 
+// sclose -- close file with external name, return location or error 
 //-----------------------------------------------------------------------
 int Pfile::sclose(const Pworld& pworld, const char* fname)
 {
@@ -379,6 +383,7 @@ int Pfile::sclose(const Pworld& pworld, const char* fname)
       if (loc != -1)
       {
         stat = xclose(loc); 
+        stat = (stat==0) ? loc : stat;
       } else {
         stat = PFILE_ERR_CLOSE; 
       }
@@ -569,20 +574,22 @@ void Pfile::seek(const int file, const long pos)
 }
 
 //-----------------------------------------------------------------------
-// sflush -- flush file buffer with external name
+// sflush -- flush file buffer with external name, return file id or
+// error code
 //-----------------------------------------------------------------------
 int Pfile::sflush(const Pworld& pworld, const char* fname) 
 {
+  int stat = -1;
   if (pworld.mpi_doesIO)
   {
-    int stat = 0;
     if (make_name(pworld,fname) == 0)
     {
       int loc = xfile_loc(m_buf);
   
-      if (stat != -1)
+      if (loc != -1)
       {
         fflush(m_fio[loc].fptr);
+        stat = loc;
       } else {
         stat = PFILE_ERR_FLUSH; 
       }
@@ -591,7 +598,7 @@ int Pfile::sflush(const Pworld& pworld, const char* fname)
       return PFILE_ERR_SLEN;
     }
   }
-  return 0;
+  return stat;
 }
 
 //-----------------------------------------------------------------------
@@ -609,9 +616,9 @@ int Pfile::flush(const Pworld& pworld, const int fid) const
 }
 
 //-----------------------------------------------------------------------
-// get_fid
+// sget_fid
 //-----------------------------------------------------------------------
-int Pfile::get_fid(const Pworld& pworld, const char* fname)
+int Pfile::sget_fid(const Pworld& pworld, const char* fname)
 {
   if (pworld.mpi_doesIO)
   {
@@ -645,12 +652,8 @@ int Pfile::save(const Pworld& pworld)
     write(m_rootid,get_pos(m_rootid),&m_nfiles,sizeof(m_nfiles),1); 
 
     //Write data
-    write(m_rootid,get_pos(m_rootid),m_fio.data(),sizeof(Pfio),m_nfiles); 
-    write(m_rootid,get_pos(m_rootid),&m_isopen[0],sizeof(m_isopen[0]),m_nfiles);
     write(m_rootid,get_pos(m_rootid),m_fname[0],
           sizeof(char)*m_fname.maxlen(),m_nfiles); 
-    write(m_rootid,get_pos(m_rootid),m_fstat[0],
-          sizeof(char)*m_fstat.maxlen(),m_nfiles); 
 
     //Close file
     if (xclose(m_rootid) != 0) {return PFILE_ERR_CLOSE;}
@@ -675,7 +678,6 @@ int Pfile::recover(const Pworld& pworld)
     //read number of files
     seek(m_rootid,0);
     read(m_rootid,get_pos(m_rootid),&m_nfiles,sizeof(m_nfiles),1); 
-    printf("num files are %d\n",m_nfiles);
 
     //resize vectors to 
     m_fio.resize(m_nfiles);
@@ -684,24 +686,9 @@ int Pfile::recover(const Pworld& pworld)
     m_fstat.resize(m_nfiles);
 
     //read the vector data
-    read(m_rootid,get_pos(m_rootid),m_fio.data(),sizeof(Pfio),m_nfiles); 
-    read(m_rootid,get_pos(m_rootid),&m_isopen[0],sizeof(m_isopen[0]),m_nfiles);
     read(m_rootid,get_pos(m_rootid),m_fname[0],
-          sizeof(char)*m_fname.maxlen(),m_nfiles); 
-    read(m_rootid,get_pos(m_rootid),m_fstat[0],
-          sizeof(char)*m_fstat.maxlen(),m_nfiles); 
+         sizeof(char)*m_fname.maxlen(),m_nfiles); 
 
-    //reopen all files that were open at time of save
-    //this is a little bit hacky but should work
-    for (int file=0;file<m_nfiles;file++) 
-    {
-      if (xisopen(file)) 
-      {
-        m_isopen[file].val = false;
-        xopen(file,m_fstat[file]);
-      }
-    }
-    
     //Close file
     if (xclose(m_rootid) != 0) {return PFILE_ERR_CLOSE;}
   }

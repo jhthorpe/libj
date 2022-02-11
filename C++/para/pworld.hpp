@@ -58,6 +58,9 @@ struct Pworld
   //Destruction
   int destroy();
 
+  //Error
+  void error(const int stat);
+
 };
 
 #endif
