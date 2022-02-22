@@ -6,7 +6,7 @@
   .cpp file for pprint, which stores (potentially parallel)
   print buffers
 --------------------------------------------------------*/
-#include "para.hpp"
+#include "pprint.hpp"
 //--------------------------------------------------------
 // Pprint initializer 
 //--------------------------------------------------------
@@ -90,7 +90,7 @@ int Pprint::add(const char* fstring,...)
       idx += len;
     } else {
       printf("\nERROR ERROR ERROR\n");
-      printf("Prprint::add string would case buffer overflow\n");
+      printf("Pprint::add string would case buffer overflow\n");
       return 1;
     }
   }
@@ -120,7 +120,7 @@ int Pprint::vadd(const char* fstring, va_list arg)
       idx += len;
     } else {
       printf("\nERROR ERROR ERROR\n");
-      printf("Prprint::add string would case buffer overflow\n");
+      printf("Pprint::add string would case buffer overflow\n");
       return 1;
     } 
   } 
@@ -218,7 +218,6 @@ void Pprint::print(const Pworld& pworld, const int message) const
   //MPI code
   #if defined LIBJ_MPI
   //gather messages
-
   MPI_Barrier(pworld.comm_world);
   MPI_Gather(vec[message],
              PPRINT_LEN,MPI_CHAR,

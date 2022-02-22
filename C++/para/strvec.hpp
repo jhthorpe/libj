@@ -58,6 +58,12 @@ struct Strvec
   //resize
   int resize(const long len);
 
+  //find index
+  long find_index(const char* name) const; 
+
+  //compare
+  int compare(const long elm, const char* name) const; 
+
 };
 
 //--------------------------------------------------------
@@ -188,6 +194,31 @@ int Strvec<STRLEN>::resize(const long len)
     return 1; 
   } 
   return 0;  
+}
+
+//--------------------------------------------------------
+// find_index 
+//	finds the index of a match of some string in
+//	the list
+//--------------------------------------------------------
+template<const int STRLEN>
+long Strvec<STRLEN>::find_index(const char* name) const
+{
+  for (long index=0;index<size;index++)
+  {
+    if (compare(index,name) == 0) {return index;} 
+  }
+  return -1;
+}
+
+//--------------------------------------------------------
+// compare
+//	compare string to strin at index
+//--------------------------------------------------------
+template<const int STRLEN>
+int Strvec<STRLEN>::compare(const long index, const char* name) const
+{
+  return strncmp(name,buffer+STRLEN*index,STRLEN);
 }
 
 #endif

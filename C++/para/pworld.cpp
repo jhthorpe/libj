@@ -4,7 +4,7 @@
 
   .cpp file for pworld
 -----------------------------------------------------------------*/
-#include "para.hpp"
+#include "pworld.hpp"
 
 //-----------------------------------------------------------------
 // initialize
@@ -29,6 +29,7 @@ int Pworld::init()
                         mpi_world_task_id,mpi_info,&comm_shared);
     MPI_Comm_size(comm_shared,&mpi_shared_num_tasks);
     MPI_Comm_rank(comm_shared,&mpi_shared_task_id);
+    mpi_shared_root = 0;
     mpi_shared_ismaster = (mpi_shared_task_id != 0) ? false : true; 
     mpi_doesIO = (!mpi_shared_ismaster) ? false : true;
     
@@ -41,6 +42,7 @@ int Pworld::init()
 
     mpi_shared_num_tasks=1;
     mpi_shared_task_id=0;
+    mpi_shared_root = 0;
     mpi_shared_ismaster=true;
     mpi_doesIO = true;
   #endif
@@ -73,15 +75,3 @@ int Pworld::destroy()
   return 0;
 }
 
-//-----------------------------------------------------------------
-// error 
-//-----------------------------------------------------------------
-void Pworld::error(const int stat)
-{
-  if (mpi_world_ismaster) {printf("pworld error status %d\n",stat);}
-  #if defined LIBJ_MPI
-    MPI_Barrier(comm_world);
-  #endif
-  destroy(); 
-  exit(stat);
-}

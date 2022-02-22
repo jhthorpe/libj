@@ -27,7 +27,13 @@
     seek, get_pos, should only be called by a task which does the IO. 
  
 ------------------------------------------------------------------------*/
-
+#ifndef LIBJ_PFILE_HPP
+#define LIBJ_PFILE_HPP
+#include "strvec.hpp"
+#include "pprint.hpp"
+#include "pworld.hpp"
+#include <vector>
+#include <stdio.h>
 /*
  * Plain old data for file pointer and position
 */
@@ -51,11 +57,6 @@ struct Pbool
 };
 #endif 
 
-#ifndef PFILE_HPP
-#define PFILE_HPP
-#include <string>
-#include <vector>
-#include <stdio.h>
 #include "libjdef.h"
 
 //Error message integers
@@ -98,7 +99,7 @@ class Pfile
   //Remove a file
   // Note that sadd returns the file id (or -val on error)
   int sremove(const Pworld& pworld, const char* fname);
-  int remove(const Pworld& pworld, const int fid); 
+//  int remove(const Pworld& pworld, const int fid); 
   int xremove(const int fid); 
 
   //Check if file is open

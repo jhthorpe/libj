@@ -42,6 +42,8 @@ buf.reset();			 //reset buffer and stored messages
 #include <stdarg.h>
 
 #include "libjdef.h"
+#include "pworld.hpp"
+#include "strvec.hpp"
 
 #define PPRINT_RES 10
 #define PPRINT_LEN 1024 
@@ -81,7 +83,6 @@ struct Pprint
 
   //Add a formatted string with variable input data
   int add(const char* fstring,...);
-
 
   //Add a formatted string with variable input data
   int vadd(const char* fstring,va_list arg);

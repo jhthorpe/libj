@@ -4,7 +4,7 @@
  *
  *  .hpp file for Pfile, which handles a (possibly parallel) filesystem
 ------------------------------------------------------------------------*/
-#include "para.hpp"
+#include "pfile.hpp"
 
 //-----------------------------------------------------------------------
 // Constructor
@@ -203,6 +203,7 @@ int Pfile::sremove(const Pworld& pworld, const char* fname)
   return stat;
 }
 
+/*
 //-----------------------------------------------------------------------
 // remove -- remove a file from the filesystem based on file id
 //-----------------------------------------------------------------------
@@ -220,6 +221,7 @@ int Pfile::remove(const Pworld& pworld, const int fid)
   } 
   return 0;
 }
+*/
 
 //-----------------------------------------------------------------------
 // xremove -- remove a file from the filesystem based on file id, 
@@ -473,7 +475,7 @@ int Pfile::xerase(const int fid)
 {
   int stat = xclose(fid);   
   //if (stat != 0) {return stat;}
-  stat += std::remove(m_fname[fid]); //C remove function
+  stat += remove(m_fname[fid]); //C remove function
   //if (stat != 0) {return PFILE_ERR_ERASE;}
   stat += xremove(fid); //internal remove function
   return (stat == 0) ? 0 : PFILE_ERR_ERASE; 
