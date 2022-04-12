@@ -16,14 +16,14 @@ void libj_dsetv_p_kernel(const double* A, double* X_ptr)
 //Kernal if no AVX
 #else
 #define UNROLL 6
-void libj_dsetv_p_kernel(double* X_ptr)
+void libj_dsetv_p_kernel(const double* A, double* X_ptr)
 {
-  X_ptr[0] = (double) 0; 
-  X_ptr[1] = (double) 0; 
-  X_ptr[2] = (double) 0; 
-  X_ptr[3] = (double) 0; 
-  X_ptr[4] = (double) 0; 
-  X_ptr[5] = (double) 0; 
+  X_ptr[0] = *A; 
+  X_ptr[1] = *A; 
+  X_ptr[2] = *A; 
+  X_ptr[3] = *A; 
+  X_ptr[4] = *A; 
+  X_ptr[5] = *A; 
 }
 #endif
 
