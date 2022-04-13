@@ -11,7 +11,7 @@
 
 //Definitions
 #define OMP_CHUNK 1024
-#if defined (AVX) || defined (FMA)
+#if defined (AVX) 
   #define UNROLL 8
 #else
   #define UNROLL 4
@@ -104,12 +104,10 @@ void libj::xpy(const libj::tensor<T>& X, libj::tensor<T>& Y)
   //General xpy loops
   const long N = X.size();
   const long M = N % UNROLL;
-
   for (long i=0;i<M;i++)
   {
     Y[i] = X[i] + Y[i]; 
   }
-
   
   #pragma omp parallel for schedule(dynamic,OMP_CHUNK) //if (N > OMP_CHUNK)
   for (long i=M;i<N;i+=UNROLL)

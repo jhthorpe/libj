@@ -10,7 +10,7 @@
 
 //Definitions
 #define OMP_CHUNK 1024
-#if defined (AVX)
+#if defined (AVX) || (FMA)
   #define UNROLL 8
 #else
   #define UNROLL 4
@@ -79,6 +79,9 @@ template void axpby_kernal<int>(const int a, const int* X_ptr,
 template<>
 void axpby_kernal(const double a, const double* X_ptr, const double b, double* Y_ptr)
 {
+  _mm_prefetch(Y_ptr+0, _MM_HINT_T0);
+  _mm_prefetch(X_ptr+0, _MM_HINT_T0);
+
   const __m256d b_0_3 = _mm256_broadcast_sd(&b);
   __m256d Y_0_3 = _mm256_mul_pd(b_0_3,_mm256_loadu_pd(Y_ptr+0)); 
   __m256d Y_4_7 = _mm256_mul_pd(b_0_3,_mm256_loadu_pd(Y_ptr+4)); 
@@ -96,6 +99,9 @@ void axpby_kernal(const double a, const double* X_ptr, const double b, double* Y
 template<>
 void axpby_kernal(const double a, const double* X_ptr, double* Y_ptr)
 {
+  _mm_prefetch(Y_ptr+0, _MM_HINT_T0);
+  _mm_prefetch(X_ptr+0, _MM_HINT_T0);
+
   const __m256d a_0_3 = _mm256_broadcast_sd(&a);
   const __m256d X_0_3 = _mm256_mul_pd(a_0_3,_mm256_loadu_pd(X_ptr+0));
   const __m256d X_4_7 = _mm256_mul_pd(a_0_3,_mm256_loadu_pd(X_ptr+4));

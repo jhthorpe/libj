@@ -10,7 +10,7 @@
 
 //Definitions
 #define OMP_CHUNK 1024
-#if defined (AVX)
+#if defined (AVX) || (FMA)
   #define UNROLL 8
 #else
   #define UNROLL 4

@@ -80,18 +80,19 @@ void axpy_kernal(const double a, const double* X_ptr, double* Y_ptr)
 {
   //I can see several ways of ordering this...
 
+  _mm_prefetch(Y_ptr+64, _MM_HINT_T2);
+  _mm_prefetch(X_ptr+64, _MM_HINT_T2);
+
   const __m256d a_0_3   = _mm256_broadcast_sd(&a);
 
   const __m256d Y_0_3   = _mm256_fmadd_pd(a_0_3,_mm256_loadu_pd(X_ptr+0),
                                                 _mm256_loadu_pd(Y_ptr+0));
   const __m256d Y_4_7   = _mm256_fmadd_pd(a_0_3,_mm256_loadu_pd(X_ptr+4),
                                                 _mm256_loadu_pd(Y_ptr+4));
-/*
-  const __m256d Y_8_11  = _mm256_fmadd_pd(a_0_3,_mm256_loadu_pd(X_ptr+8),
-                                                _mm256_loadu_pd(Y_ptr+8));
-  const __m256d Y_12_15 = _mm256_fmadd_pd(a_0_3,_mm256_loadu_pd(X_ptr+12),
-                                                _mm256_loadu_pd(Y_ptr+12));
-*/
+//  const __m256d Y_8_11  = _mm256_fmadd_pd(a_0_3,_mm256_loadu_pd(X_ptr+8),
+//                                                _mm256_loadu_pd(Y_ptr+8));
+//  const __m256d Y_12_15 = _mm256_fmadd_pd(a_0_3,_mm256_loadu_pd(X_ptr+12),
+//                                                _mm256_loadu_pd(Y_ptr+12));
 
   _mm256_storeu_pd(Y_ptr+0  ,Y_0_3);
   _mm256_storeu_pd(Y_ptr+4  ,Y_4_7);
@@ -105,6 +106,8 @@ template<>
 void axpy_kernal(const double a, const double* X_ptr, double* Y_ptr)
 {
   //I can see several ways of ordering this...
+  _mm_prefetch(Y_ptr+64, _MM_HINT_T2);
+  _mm_prefetch(X_ptr+64, _MM_HINT_T2);
 
   const __m256d a_0_3 = _mm256_broadcast_sd(&a);
   const __m256d X_0_3 = _mm256_mul_pd(a_0_3,_mm256_loadu_pd(X_ptr+0);
