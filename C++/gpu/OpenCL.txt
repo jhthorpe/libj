@@ -1,0 +1,83 @@
+TERMINOLOGY
+
+Platform	-- Vendor specific OpenCL implementation
+Context		-- devices which work together
+Device		-- CPU/GPU/Accelerator on which OpenCL will run
+Host		-- client code
+Kernel		-- string which is compiled at runtime to actually DO the work
+Work Item	-- a unit of work executing a kernel
+Work Groups	-- A collection of work items
+Command Queue	-- Send commands to device to be executed
+Memory		-- see next. Private (Priv), Local (Locl), Global (Glob), Constant (Cnst)
+Buffer		-- memory on the GPU
+Compute Unit	-- work group + memory
+
+MEMORY
+
+  --------    --------                 --------    --------
+ |  Priv  |  |  Priv  |               |  Priv  |  |  Priv  |     PRIVATE WORKIT MEMORY
+  --------    --------                 -------     --------
+  --------    --------                 --------    --------
+ |        |  |        |               |        |  |        |
+ | WorkIt |  | WorkIt |               | WorkIt |  | WorkIt |     CPUS OR GPU WORK GROUPS
+ |    0   |  |    M   |               |    0   |  |    M   | 
+  --------    --------                 -------     --------
+  vvvvvvvvvvvvvvvvvvvv                 vvvvvvvvvvvvvvvvvvvv
+     Compute Unit 0                        Compute Unit N
+
+  
+  --------------------                ---------------------
+ |     Local Mem      |              |     Local Mem       |              
+  --------------------                ---------------------
+  
+  ---------------------------------------------------------
+ |                                                         |
+ |           Global/Constant Memory Data Cache             |
+ |                                                         |
+  ---------------------------------------------------------
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ 
+ 
+ ----------------------------------------------------------- 
+|                 Global Device Memory                      |
+|                                                           |     Device memory which host interacts with
+|                                                           |
+ ----------------------------------------------------------- 
+  
+
+Description of useful device data
+
+---- memory parameter ----
+CL_DEVICE_GLOBAL_MEM_CACHE_SIZE (cl_ulong)
+Size of global memory cache in bytes.
+
+CL_DEVICE_GLOBAL_MEM_CACHELINE_SIZE (cl_uint)
+Size of global memory cache line in bytes.
+
+CL_DEVICE_GLOBAL_MEM_SIZE (cl_ulong)
+Size of global device memory in bytes.
+
+CL_DEVICE_LOCAL_MEM_SIZE (cl_ulong)
+Size of local memory arena in bytes. The minimum value is 16 KB
+
+CL_DEVICE_MAX_CONSTANT_BUFFER_SIZE (cl_ulong)
+Max size in bytes of a constant buffer allocation. The minimum value is 64 KB.
+
+CL_DEVICE_MAX_MEM_ALLOC_SIZE (cl_ulong)
+Max size of memory object allocation in bytes. The minimum value is max (1/4th of CL_DEVICE_GLOBAL_MEM_SIZE, 128*1024*1024)
+
+---- compute parameters ----
+CL_DEVICE_MAX_COMPUTE_UNITS (cl_uint)
+The number of parallel compute cores on the OpenCL device. The minimum value is 1.
+
+CL_DEVICE_MAX_WORK_GROUP_SIZE (size_t)
+Maximum number of work-items in a work-group executing a kernel using the data parallel execution model. (Refer to clEnqueueNDRangeKernel). The minimum value is 1.
+
+CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS (cl_uint)
+Maximum dimensions that specify the global and local work-item IDs used by the data parallel execution model. (Refer to clEnqueueNDRangeKernel). The minimum value is
+ 3.
+
+CL_DEVICE_MAX_WORK_ITEM_SIZES (size_t[])
+Maximum number of work-items that can be specified in each dimension of the work-group to clEnqueueNDRangeKernel.
+Returns n size_t entries, where n is the value returned by the query for CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. The minimum value is (1, 1, 1).
+
