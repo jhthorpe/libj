@@ -113,5 +113,15 @@ void axpy(const T a, const libj::tensor<T>& X, libj::tensor<T>& Y);
 template <typename T>
 void xpy(const libj::tensor<T>& X, libj::tensor<T>& Y);
 
+/*---------------------------------------------------------
+  * reduction functions
+  *
+  * Accumulates all the elements of tensor X
+  *
+  * X	-> tensor
+---------------------------------------------------------*/
+template <typename T>
+T sum(const libj::tensor<T>& X);
+
 }//end libj 
 #endif

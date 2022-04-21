@@ -49,6 +49,7 @@ template void axpy_kernal<int>(const int a, const int* X_ptr,
                                int* Y_ptr);
 
 #else
+
 template <typename T>
 void axpy_kernal(const T a, const T* X_ptr, T* Y_ptr)
 {
@@ -150,7 +151,7 @@ void libj::axpy(const T a, const libj::tensor<T>& X, libj::tensor<T>& Y)
   }
 
   
-  #pragma omp parallel for schedule(dynamic,OMP_CHUNK) //if (N > OMP_CHUNK)
+  #pragma omp parallel for schedule(dynamic,OMP_CHUNK) shared(X,Y)//if (N > OMP_CHUNK)
   for (long i=M;i<N;i+=UNROLL)
   {
     axpy_kernal<T>(a,&X[i],&Y[i]);

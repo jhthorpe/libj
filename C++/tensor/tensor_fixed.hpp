@@ -10,18 +10,18 @@
 
   Note that the index access via () is implemented via a varadic template, 
   and thus should be rather efficient, though [], which accesses based on the
-  stride should still be prefered
+  offset should still be prefered
 
   INITIALIZATION
   -------------------
   Create, but do not assign or allocate
-    libj::tensor<double> T; 
+    libj::tensor<double,3,3,3> T; 
 
   Create and allocate with set legnths via malloc
-    libj::tensor<double> A(1,4,3);
+    libj::tensor<double,3> A(1,4,3);
 
   Create and assign to memory with set lengths
-    libj::tensor<double> A(pointer,1,4,3);
+    libj::tensor<double,3> A(1,4,3,pointer);
 
   Allocate or assign an existing tensor:
     T.allocate(1,4,3);
@@ -33,7 +33,7 @@
     T.unassign();
 
   Reassignment (including reshaping)
-    T.assign(pointer, 2,5,1);
+    T.assign(2,5,1,new_pointer);
   
 
   ELEMENT ACCESS
@@ -49,13 +49,7 @@
   --------------------
     same_shape<double>(T1,T2);	//returns true if T1 and T2 (double tensors) 
             			//  are the same shape, false otherwise
-    dim();			//returns number of dimensions
-    size();			//returns total number of elements
-    size(2);			//returns size of dimension 2 (3rd dimension)
-    stride(1);			//returns stride of dimension 1 (2nd dimension)
-    is_allocated();		//returns true if allocated
-    is_assigned();		//returns true if assigned
-    is_set();			//returns true if allocated or assigned
+  
 ----------------------------------------------------------------------------*/
 #ifndef TENSOR_HPP
 #define TENSOR_HPP
@@ -63,8 +57,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdarg.h>
-#include <vector>
-//#include "alignment.hpp"
+#include "alignment.hpp"
 
 //Standard alignment
 #define DEFAULT_ALIGN 16
@@ -79,121 +72,77 @@
 namespace libj 
 {
 
-static size_t calc_alignment(const void* pointer)
-{
-  size_t alignment = 1;
-
-  //2,4,8,16,32,64,128,256,512
-  for (long m=2;m<=512;m*=2)
-  {
-    if ((long)pointer%m != 0) {return alignment;}
-    alignment *= 2;
-  }
-  return alignment;
-}
-
-template<typename T>
+template<typename T, const size_t N>
 class tensor
 {
   private:
-  T*                  M_BUFFER;       //start of data
-  T*                  M_POINTER;      //pointer to malloc	
-  std::vector<size_t> M_LENGTHS;      //vector of lengths 
-  std::vector<size_t> M_STRIDE;      //pointer to strides
-  size_t	      M_NDIM;         //number of dimensions
-  size_t              M_NELM;      //total number of elements
-  size_t              M_ALIGNMENT;    //alignment in bytes
-  bool                M_IS_ALLOCATED; //tensor is allocated with malloc 
-  bool                M_IS_ASSIGNED;  //tensor is assigned with malloc 
+  T*       M_BUFFER;       //start of data
+  T*       M_POINTER;	//pointer to malloc
+  size_t   M_LENGTHS[N];   //list of dimension lengths
+  size_t   M_OFFSETS[N];	//list of offsets for data access
+  size_t   M_NUM_ELM;      //total number of elements
+  size_t   M_ALIGNMENT;    //alignment in bytes
+  bool     M_IS_ALLOCATED; //tensor is allocated with malloc 
+  bool     M_IS_ASSIGNED;  //tensor is assigned with malloc 
 
   //internal functions
   void m_set_default();
+  void m_set_dim(const size_t* dim);
   void m_allocate();
   void m_aligned_allocate(const size_t BYTES);
   void m_assign(T* pointer);
 
-  //internal varadic templates for data access
+  //internal varadic templates for data access...fancy stuff
   template<class...Rest>
   size_t m_index(const size_t level, const size_t first, const Rest...rest) const
   {
-    return first*M_STRIDE[level] + m_index(level+1,rest...); 
+    return first*M_OFFSETS[level] + m_index(level+1,rest...); 
   }
   size_t m_index(const size_t level, const size_t first) const
   {
-    return first*M_STRIDE[level];
+    return first*M_OFFSETS[level];
   }
-
-  //internal varadic templates for initialization
-  void m_init()
-  {
-    M_NDIM = M_LENGTHS.size();
-    for (size_t i=0;i<M_NDIM;i++)
-    {
-      if (M_LENGTHS[i] <= 0)
-      {
-        printf("ERROR libj::tensor::m_init\n");
-        printf("Dimension %zu has length <= 0 \n",i);
-        exit(1);
-      }
-    }
-  }
-  void m_init(const size_t first)
-  {
-    M_STRIDE.push_back(M_NELM);
-    M_LENGTHS.push_back(first);
-    M_NELM *= first;
-    m_init();
-  }
-  template <class...Rest> void m_init(const size_t first, const Rest...rest)
-  {
-    M_STRIDE.push_back(M_NELM);
-    M_LENGTHS.push_back(first);
-    M_NELM *= first;
-    m_init(rest...);
-  }
+  
   
   public:
 
   //Constructors and destructors
   tensor();			
+  tensor(const size_t i0,...);	
+  tensor(T* pointer, const size_t i0,...);
   ~tensor();			
 
-  //Allocate constructor
-  template<class...Rest> tensor(const size_t first,const Rest...rest);	
-
-  //Assign constructor
-  template<class...Rest> tensor(T* pointer, const size_t first,const Rest...rest);
-
   //allocate,assign
-  template<class...Rest> void allocate(const size_t first,const Rest...rest);
-  template<class...Rest> void aligned_allocate(const size_t BYTES, const size_t first,
-                                               const Rest...rest);
-  template<class...Rest> void assign(T* pointer, const size_t first,const Rest...rest);
   void deallocate();
+  void allocate(const size_t i0,...);
+  void aligned_allocate(const size_t BYTES, const size_t i0,...);
+  void assign(T* pointer, const size_t i0,...);
   void unassign();
 
   //Getters
-  const size_t  size() const {return M_NELM;}
+  const size_t  size() const {return M_NUM_ELM;}
   const size_t  size(const size_t dim) const {return M_LENGTHS[dim];}
-  const size_t  dim() const {return M_NDIM;}
+  const size_t  dim() const {return N;}
   const size_t  alignment() const {return M_ALIGNMENT;}
-  const size_t  stride(const size_t dim) const {return M_STRIDE[dim];}
+  const size_t  offset(const size_t dim) const {return M_OFFSETS[dim];}
   const bool    is_allocated() const {return M_IS_ALLOCATED;}
   const bool    is_assigned() const {return M_IS_ASSIGNED;}
   const bool    is_set() const {return M_IS_ALLOCATED || M_IS_ASSIGNED;}
 
   //Access functions
-  T& operator[] (const size_t stride) {return *(M_BUFFER+stride);}
-  const T& operator[] (const size_t stride) const {return *(M_BUFFER+stride);}
+  T& operator[] (const size_t offset) {return *(M_BUFFER+offset);}
+  const T& operator[] (const size_t offset) const {return *(M_BUFFER+offset);}
 
-  template<class...Rest> T& operator() (const size_t i0,const Rest...rest)
+  template<class...Rest>
+  T& operator() (const size_t i0,const Rest...rest)
   {
-    return *(M_BUFFER + i0*M_STRIDE[0] + m_index(1,rest...));
+    return *(M_BUFFER + m_index(1,rest...));
   }
 
-  template<class...Rest> const T& operator() (const size_t i0,const Rest...rest) const
+  template<class...Rest>
+  const T& operator() (const size_t i0,const Rest...rest) const
   {
-    return *(M_BUFFER + i0*M_STRIDE[0] + m_index(1,rest...));
+    return *(M_BUFFER + m_index(1,rest...));
   }
 
 }; //end of normal tensor
@@ -201,8 +150,8 @@ class tensor
 //-----------------------------------------------------------------------
 // returns true if the tensors are the same shape
 //-----------------------------------------------------------------------
-template <typename T>
-bool same_shape(const tensor<T>& A, const tensor<T>& C)
+template <typename T, const size_t N>
+bool same_shape(const tensor<T,N>& A, const tensor<T,N>& C)
 {
   if (A.dim() != C.dim()) {return false;}
   for (int dim=0;dim<A.dim();dim++)
@@ -215,22 +164,58 @@ bool same_shape(const tensor<T>& A, const tensor<T>& C)
 //-----------------------------------------------------------------------
 // Initialization functions
 //-----------------------------------------------------------------------
-template<typename T>
-void tensor<T>::m_set_default()
+template<typename T, const size_t N>
+void tensor<T,N>::m_set_default()
 { 
   M_BUFFER = NULL;
   M_POINTER = NULL;
-  M_NELM = 0; 
+  for (int i=0;i<N;i++) {M_LENGTHS[i] = 0; M_OFFSETS[i]=0;}
+  M_NUM_ELM = 0; 
   M_ALIGNMENT = 0; 
   M_IS_ALLOCATED = false;
   M_IS_ASSIGNED = false;
 }
 
 //-----------------------------------------------------------------------
+// set_dim
+//	sets the dimensions of the tensor
+//-----------------------------------------------------------------------
+template<typename T, const size_t N>
+void tensor<T,N>::m_set_dim(const size_t* dim)
+{
+  //initialize the data
+  M_OFFSETS[0] = (size_t) 0;
+  M_LENGTHS[0] = dim[0];
+  M_NUM_ELM    = (size_t) M_LENGTHS[0];
+  if (M_LENGTHS[0] == 0)
+  {
+    printf("ERROR libj::tensor::set_dim\n");
+    printf("tensor had dimension with 0 length \n");
+    exit(1);
+  }
+
+  //set the data
+  for (size_t i=1;i<N;i++)
+  {
+    M_OFFSETS[i] = M_NUM_ELM;
+    M_LENGTHS[i] = dim[i];
+    M_NUM_ELM *= M_LENGTHS[i]; 
+
+    //check for bad elements
+    if (M_LENGTHS[i] <= 0)
+    {
+      printf("ERROR libj::tensor::set_dim \n");
+      printf("tensor had dimension with 0 length\n");
+      exit(1);
+    }
+  }
+}
+
+//-----------------------------------------------------------------------
 //Blank contructor
 //-----------------------------------------------------------------------
-template<typename T>
-tensor<T>::tensor()
+template<typename T, const size_t N>
+tensor<T,N>::tensor()
 {
   m_set_default();
 }
@@ -238,8 +223,8 @@ tensor<T>::tensor()
 //-----------------------------------------------------------------------
 // blank destructor
 //-----------------------------------------------------------------------
-template<typename T>
-tensor<T>::~tensor()
+template<typename T, const size_t N>
+tensor<T,N>::~tensor()
 {
   if (M_IS_ALLOCATED) deallocate();
 }
@@ -247,17 +232,17 @@ tensor<T>::~tensor()
 //-----------------------------------------------------------------------
 //Allocator constructor
 //-----------------------------------------------------------------------
-template<typename T> template<class...Rest>
-tensor<T>::tensor(const size_t first,const Rest...rest)
+template<typename T, const size_t N>
+tensor<T,N>::tensor(const size_t i0,...)
 {
   //set the default
   m_set_default();
 
-  //initialize
-  M_LENGTHS.push_back(first);
-  M_STRIDE.push_back(1);
-  M_NELM = first; 
-  m_init(rest...);//performs rest of varadic initialization
+  //Make the index array
+  size_t dim[N]; make_index(dim,i0);
+
+  //set the dimensions
+  m_set_dim(dim);
 
   //call the internal allocate function
   m_allocate();
@@ -266,17 +251,17 @@ tensor<T>::tensor(const size_t first,const Rest...rest)
 //-----------------------------------------------------------------------
 //Assignment constructor
 //-----------------------------------------------------------------------
-template<typename T> template<class...Rest>
-tensor<T>::tensor(T* pointer, const size_t first,const Rest...rest)
+template<typename T, const size_t N>
+tensor<T,N>::tensor(T* pointer, const size_t i0,...)
 {
   //set the default
   m_set_default();
 
-  //Initialize
-  M_LENGTHS.push_back(first);
-  M_STRIDE.push_back(1);
-  M_NELM = first; 
-  m_init(rest...);//performs rest of varadic initialization
+  //Make the index array
+  size_t dim[N]; make_index(dim,i0);
+
+  //set the dimensions
+  m_set_dim(dim);
 
   //call the internal allocate function
   m_assign(pointer);
@@ -285,20 +270,20 @@ tensor<T>::tensor(T* pointer, const size_t first,const Rest...rest)
 //-----------------------------------------------------------------------
 // internal malloc
 //-----------------------------------------------------------------------
-template<typename T>
-void tensor<T>::m_allocate()
+template<typename T, const size_t N>
+void tensor<T,N>::m_allocate()
 {
   if (!M_IS_ALLOCATED && !M_IS_ASSIGNED)
   {
-    M_POINTER = (T*) malloc(sizeof(T)*M_NELM);
+    M_POINTER = (T*) malloc(sizeof(T)*M_NUM_ELM);
     M_BUFFER = M_POINTER;
     if (M_BUFFER == NULL || M_POINTER == NULL)
     {
-      printf("ERROR libj::tensor::m_allocate could not allocate M_BUFFER \n");
+      printf("ERROR libj::tensor::allocate could not allocate M_BUFFER \n");
       exit(1);
      }
      M_IS_ALLOCATED = true;
-     M_ALIGNMENT = libj::calc_alignment((void*) M_BUFFER);
+     M_ALIGNMENT = calc_alignment(M_BUFFER);
 
    } else {
      printf("ERROR libj::tensor::m_allocate\n");
@@ -310,15 +295,15 @@ void tensor<T>::m_allocate()
 //-----------------------------------------------------------------------
 // internal assign
 //-----------------------------------------------------------------------
-template<typename T>
-void tensor<T>::m_assign(T* pointer)
+template<typename T, const size_t N>
+void tensor<T,N>::m_assign(T* pointer)
 {
   if (!M_IS_ALLOCATED)
   {
     M_BUFFER = pointer;
     M_POINTER = pointer;
     M_IS_ASSIGNED = true;
-    M_ALIGNMENT = libj::calc_alignment((void*) M_BUFFER);
+    M_ALIGNMENT = calc_alignemnt(M_BUFFER);
   } else {
     printf("ERROR libj::tensor::m_assign\n");
     printf("attempted to assign an already allocated vector\n");
@@ -329,8 +314,8 @@ void tensor<T>::m_assign(T* pointer)
 //----------------------------------------------------------------------------
 // internal aligned_allocate 
 //----------------------------------------------------------------------------
-template<typename T>
-void libj::tensor<T>::m_aligned_allocate(const size_t ALIGN)
+template<typename T, const size_t N>
+void libj::tensor<T,N>::m_aligned_allocate(const size_t ALIGN)
 {
   //check we are not allocated or assigned
   if (!M_IS_ALLOCATED && !M_IS_ASSIGNED)
@@ -344,7 +329,7 @@ void libj::tensor<T>::m_aligned_allocate(const size_t ALIGN)
     }
 
     //align the buffer pointer  
-    M_POINTER = (T*) malloc(ALIGN+M_NELM*sizeof(T));
+    M_POINTER = (T*) malloc(ALIGN+M_NUM_ELM*sizeof(T));
     if (M_POINTER != NULL)
     {
       long M = (long)M_POINTER%(long)ALIGN; //number of bytes off
@@ -382,15 +367,13 @@ void libj::tensor<T>::m_aligned_allocate(const size_t ALIGN)
 //-----------------------------------------------------------------------
 // allocate
 //-----------------------------------------------------------------------
-template <typename T> template<class...Rest>
-void tensor<T>::allocate(const size_t first,const Rest...rest)
+template <typename T, const size_t N>
+void tensor<T,N>::allocate(const size_t i0,...)
 {
   if (!M_IS_ALLOCATED && !M_IS_ASSIGNED)
   {
-    M_LENGTHS.push_back(first);
-    M_STRIDE.push_back(1);
-    M_NELM = first;
-    m_init(rest...);
+    size_t dims[N];make_index(dims,i0);
+    m_set_dim(dims);    
     m_allocate();
   } else {
     printf("ERROR libj::tensor::allocate\n");
@@ -402,16 +385,13 @@ void tensor<T>::allocate(const size_t first,const Rest...rest)
 //-----------------------------------------------------------------------
 // aligned allocate
 //-----------------------------------------------------------------------
-template <typename T> template<class...Rest>
-void tensor<T>::aligned_allocate(const size_t BYTES, const size_t first,
-                                 const Rest...rest)
+template <typename T, const size_t N>
+void tensor<T,N>::aligned_allocate(const size_t BYTES, const size_t i0,...)
 {
   if (!M_IS_ALLOCATED && !M_IS_ASSIGNED)
   {
-    M_LENGTHS.push_back(first);
-    M_STRIDE.push_back(1);
-    M_NELM = first;
-    m_init(rest...);
+    size_t dims[N];make_index(dims,i0);
+    m_set_dim(dims);    
     m_aligned_allocate(BYTES);
   } else {
     printf("ERROR libj::tensor::aligned_allocate\n");
@@ -423,15 +403,13 @@ void tensor<T>::aligned_allocate(const size_t BYTES, const size_t first,
 //-----------------------------------------------------------------------
 // assign 
 //-----------------------------------------------------------------------
-template <typename T> template<class...Rest>
-void tensor<T>::assign(T* pointer, const size_t first,const Rest...rest)
+template <typename T, const size_t N>
+void tensor<T,N>::assign(T* pointer, const size_t i0,...)
 {
   if (!M_IS_ALLOCATED)
   {
-    M_LENGTHS.push_back(first);
-    M_STRIDE.push_back(1);
-    M_NELM = first;
-    m_init(rest...);
+    size_t dims[N];make_index(dims,i0);
+    m_set_dim(dims);    
     m_assign(pointer);
   } else {
     printf("ERROR libj::tensor::assign\n");
@@ -443,8 +421,8 @@ void tensor<T>::assign(T* pointer, const size_t first,const Rest...rest)
 //-----------------------------------------------------------------------
 // deallocate via free 
 //-----------------------------------------------------------------------
-template<typename T>
-void tensor<T>::deallocate()
+template<typename T, const size_t N>
+void tensor<T,N>::deallocate()
 {
   if (M_IS_ALLOCATED)
   {
@@ -460,8 +438,8 @@ void tensor<T>::deallocate()
 //-----------------------------------------------------------------------
 // unassign
 //-----------------------------------------------------------------------
-template<typename T>
-void tensor<T>::unassign()
+template<typename T, const size_t N>
+void tensor<T,N>::unassign()
 {
   if (M_IS_ASSIGNED)
   {
