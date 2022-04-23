@@ -141,6 +141,14 @@ class tensor
     M_NELM *= first;
     m_init(rest...);
   }
+
+  //Internal varadic templates for block
+  template<class...Rest> 
+  void m_block(const size_t level, std::vector<size_t>& start,
+               std::vector<size_t>& length, const size_t first,
+               const Rest...rest) const;
+  void m_block(const size_t level, std::vector<size_t>& start,
+               std::vector<size_t>& length, const size_t last) const;
   
   public:
 
@@ -195,7 +203,8 @@ class tensor
   }
 
   //Create a block
-  tensor<T> block(const size_t first, ...) const;
+  template<class...Rest> tensor<T> block(const size_t first, const Rest...rest) const;
+//  tensor<T> block(const size_t first, ...) const;
 
   template<typename T1, typename T2> friend bool can_alias(const tensor<T1>& A, 
                                                            const tensor<T2>& B);
@@ -248,6 +257,7 @@ void tensor<T>::m_set_default()
   M_ALIGNMENT = 0; 
   M_IS_ALLOCATED = false;
   M_IS_ASSIGNED = false;
+  M_IS_SEQUENTIAL = false;
   M_LENGTHS.clear();
   M_STRIDE.clear();
   
@@ -422,10 +432,12 @@ void tensor<T>::m_sequential()
 {
   M_IS_SEQUENTIAL = true;
   size_t NN = 1;
-  for (size_t dim=1;dim<M_NDIM;dim++)
+  for (size_t dim=0;dim<M_NDIM;dim++)
   {
-    NN *= M_LENGTHS[dim-1]; 
+    printf("dimension %zu, stride = %zu, NN = %zu, length = %zu \n",
+           dim,M_STRIDE[dim],NN,M_LENGTHS[dim]);
     if (NN != M_STRIDE[dim]) {M_IS_SEQUENTIAL = false; return;}
+    NN *= M_LENGTHS[dim];
   }
 }
 
@@ -599,52 +611,64 @@ tensor<T>::tensor(const tensor<T>& other)
 // 	The first NDIM elements are the starting indices
 //	  the next NDIM elements are the lengths of the blocks
 //-----------------------------------------------------------------------
-template <typename T> 
-tensor<T> tensor<T>::block(const size_t first, ...) const
+template <typename T> template<class...Rest>
+tensor<T> tensor<T>::block(const size_t first, const Rest...rest) const
 {
-  
   //initialize the new tensor
   tensor<T> TNEW; 
+  TNEW.M_NDIM = M_NDIM;
+  TNEW.M_LENGTHS.reserve(M_NDIM);
+  TNEW.M_STRIDE.reserve(M_NDIM);
   std::vector<size_t> start(M_NDIM);
+  std::vector<size_t> length(M_NDIM);
 
-  //get the starting indices
+  //initialize the start and length vectors
   start[0] = first;
-  va_list va; va_start(va,first);
-  for (size_t dim=1;dim<M_NDIM;dim++)
-  {
-    start[dim] = va_arg(va,size_t);
-  }
-  //push the lengths of the dimensions
+  m_block(1,start,length,rest...);
+
+  //Set the new tensor's shape -- make sure we don't go out of bounds!!
   TNEW.M_NELM = 1;
+  T* pointer=M_BUFFER; 
   for (size_t dim=0;dim<M_NDIM;dim++)
   {
-    const size_t len = va_arg(va,size_t);
-    TNEW.M_LENGTHS.push_back(std::min(len,M_LENGTHS[dim] - start[dim])); 
+    TNEW.M_LENGTHS.push_back(std::min(length[dim],M_LENGTHS[dim] - start[dim]));  
     TNEW.M_STRIDE.push_back(M_STRIDE[dim]);
-    TNEW.M_NELM *= TNEW.M_LENGTHS[dim]; 
+    TNEW.M_NELM *= TNEW.M_LENGTHS[dim];
+    pointer += M_STRIDE[dim]*start[dim];
   }
-  va_end(va);
-
   if (TNEW.M_NELM <= 0) 
   {
     printf("ERROR libj::tensor::block \n");
-    printf("New tensor would have no elements \n");
+    printf("Tensor block had <= 0 elements \n");
     exit(1);
   }
+  TNEW.m_assign(pointer);
 
-  //create the starting pointer
-  T* pointer = M_BUFFER + M_STRIDE[0]*start[0];
-  for (size_t dim=1;dim<M_NDIM;dim++)
-  {
-    pointer += M_STRIDE[dim]*start[dim];
-  }
-
-  //place the pointer to the right location
-  TNEW.m_assign(pointer); 
-  
   return TNEW;
+
+}
+
+//-----------------------------------------------------------------------
+// m_block
+//	internal function to construct block of matrix
+//-----------------------------------------------------------------------
+template<typename T>
+void tensor<T>::m_block(const size_t level, std::vector<size_t>& start,
+                        std::vector<size_t>& length, const size_t last) const
+{
+  length[level-M_NDIM] = last;
+}
+
+template <typename T> template<class...Rest>
+void tensor<T>::m_block(const size_t level, std::vector<size_t>& start,
+                        std::vector<size_t>& length, const size_t first,
+                        const Rest...rest) const
+{
+  level < M_NDIM ? start[level] = first : length[level-M_NDIM] = first;
+  m_block(level+1,start,length,rest...);
 }
 
 }//end of namespace
+
 
 #endif
