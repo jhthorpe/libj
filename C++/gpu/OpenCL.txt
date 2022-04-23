@@ -45,6 +45,7 @@ MEMORY
  ----------------------------------------------------------- 
   
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Description of useful device data
 
 ---- memory parameter ----
@@ -81,3 +82,32 @@ CL_DEVICE_MAX_WORK_ITEM_SIZES (size_t[])
 Maximum number of work-items that can be specified in each dimension of the work-group to clEnqueueNDRangeKernel.
 Returns n size_t entries, where n is the value returned by the query for CL_DEVICE_MAX_WORK_ITEM_DIMENSIONS. The minimum value is (1, 1, 1).
 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Buffer options
+
+CL_MEM_READ_ONLY
+  Buffer on device is read only
+
+CL_MEM_WRITE_ONLY
+  Buffer on device is write only
+
+CL_MEM_READ_WRITE
+  Buffer on device is read/write
+
+CL_MEM_USE_HOST_PTR
+  Use the host pointer for the data (though this might get buffered)
+
+CL_MEM_COPY_HOST_PTR
+  Copy host pointer over to buffer
+
+CL_MEM_ALLOC_HOST_PTR
+  Allocate mem at host pointer
+
+CL_MEM_HOST_WRITE_ONLY
+  Host can only write to this buffer
+
+CL_MEM_HOST_READ_ONLY
+  Host can only read from this buffer
+
+CL_MEM_HOST_NO_ACCESS
+  Host can't do anything with this buffer

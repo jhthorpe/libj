@@ -1,0 +1,2 @@
+#define MAX_NUM_GPU 16
+#define MAX_NUM_PLATFORMS 4

@@ -96,9 +96,9 @@ void copy(const libj::tensor<T>& X, libj::tensor<T>& Y);
  * Adds tensor X to tensor Y, where X is scaled by a 
  * and Y is scaled by b. Different code for the 
  * special cases is indicated by lack of a or b. 
- * 
- * calling axpby will always call the correct simplification
  *
+ * some special cases are coded for {a,b}={1,0}x{1,0} 
+ * 
  * a	-> scalar for X
  * X	-> tensor 
  * b	-> scalar for Y
@@ -122,6 +122,26 @@ void xpy(const libj::tensor<T>& X, libj::tensor<T>& Y);
 ---------------------------------------------------------*/
 template <typename T>
 T sum(const libj::tensor<T>& X);
+
+
+/*---------------------------------------------------------
+  * awxpby functions
+  * Y = a*W*X + b*Y
+  * 
+  * Adds to tensor Y (optionally scaled by b) the element-wise
+  * products of tensors X and W (scaled by a)
+  *
+  * Not all sub-cases are coded
+  *
+  * a	-> scalar which multiplies X*W
+  * W	-> tensor W
+  * X	-> tensor X
+  * b	-> scalar which multiplies Y
+  * Y	-> tensor Y
+---------------------------------------------------------*/
+template <typename T>
+void awxpby(const T a, const libj::tensor<T>& W, const libj::tensor<T>& X,
+            const T b, libj::tensor<T>& Y);
 
 }//end libj 
 #endif

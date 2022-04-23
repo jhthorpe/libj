@@ -5,7 +5,7 @@ include ../make.config
 level1v = dzerov.o dzerov_p.o dsetv.o dsetv_p.o\
 	dscalv.o dscalv_p.o zero.o set.o scal.o \
 	copy.o scopy.o axpby.o axpy.o xpby.o xpy.o \
-	sum.o
+	sum.o awxpby.o
 
 #----------------------------------------
 # LEVELS
@@ -64,6 +64,8 @@ xpy.o : xpy.cpp
 	$(CPP) $(CPPFLAGS) $(OMPCOMP) -c xpy.cpp -o xpy.o -I$(incdir)
 sum.o : sum.cpp
 	$(CPP) $(CPPFLAGS) $(OMPCOMP) -c sum.cpp -o sum.o -I$(incdir)
+awxpby.o : awxpby.cpp
+	$(CPP) $(CPPFLAGS) $(OMPCOMP) -c awxpby.cpp -o awxpby.o -I$(incdir)
 
 #----------------------------------------
 # clean

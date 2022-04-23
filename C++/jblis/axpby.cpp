@@ -97,7 +97,7 @@ void axpby_kernal(const double a, const double* X_ptr, const double b, double* Y
 #elif defined (AVX)
 //specialized template for double with AVX
 template<>
-void axpby_kernal(const double a, const double* X_ptr, double* Y_ptr)
+void axpby_kernal(const double a, const double* X_ptr, const double b, double* Y_ptr)
 {
   _mm_prefetch(Y_ptr+0, _MM_HINT_T0);
   _mm_prefetch(X_ptr+0, _MM_HINT_T0);

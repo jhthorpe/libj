@@ -1,0 +1,15 @@
+The kernel is a string that composes an OpenCL (C-like) function
+
+It must start with __kernel (double underscore)
+It must have return type void
+It usually takes at least one arguement
+
+A few useful OpenCL functions:
+  get_global_id(dim)	-> uniquely identifies work item in dimension dim in kernel
+  get_local_id(dim)	-> uniquely identifies work item in dimension di in a work group
+
+__global indicates that this is data in global scope
+
+
+Note that it is important to have as many work group items in a work group as 
+  possible, since they will share locally cached data

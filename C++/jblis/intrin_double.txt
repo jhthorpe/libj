@@ -13,6 +13,10 @@ __m256d _mm256_loadu_pd (double const * mem_addr)
 void _mm256_storeu_pd (double * mem_addr, __m256d a)
 	MEM[mem_addr+255:mem_addr] := a[255:0]
 
+**must be aligned to 32 byte**
+void _mm256_stream_pd(double* mem_ddr, __m256d a)
+	MEM[mem_addr+255:mem_addr] := a[255:0]
+
 __m256d _mm256_broadcast_sd (double const * mem_addr)
 	tmp[63:0] := MEM[mem_addr+63:mem_addr]
 	FOR j := 0 to 3

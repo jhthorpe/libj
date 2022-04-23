@@ -4,7 +4,7 @@
 namespace libj
 {
 
-size_t calc_alignment(const void* pointer)
+static size_t calc_alignment(const void* pointer)
 {
   size_t alignment = 1;
 

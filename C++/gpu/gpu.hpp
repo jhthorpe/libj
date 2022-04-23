@@ -18,6 +18,10 @@
   #include <CL/cl.h>
 #endif
 
+#include "gpu_include.h"
+#include "gpu_platform.hpp"
+#include "gpu_kernel.hpp"
+
 
 namespace libj
 {
@@ -64,7 +68,12 @@ Returns n size_t entries, where n is the value returned by the query for CL_DEVI
 ------------------------------------------------------------------------*/
 struct GPU
 {
+  //destructor
+  ~GPU();
+
   //Device id
+  int           dev_num;	//device number
+  int           platform_num;	//device platform number
   cl_device_id  device; 
 
   //Memory data
@@ -75,6 +84,9 @@ struct GPU
   unsigned long   local_mem_size;
   unsigned long   constant_max_size;
   unsigned long   max_alloc_size;
+  
+  //true if this device supports doubles
+  bool            supports_double;
 
   //Compute parameters
   cl_uint             max_compute_units;
@@ -82,14 +94,15 @@ struct GPU
   cl_uint             max_work_item_dim;
   std::vector<size_t> max_work_item_sizes;
   
-  //Buffers
-  std::vector<cl_mem> buffers; 
+  //OpenCL objects
+//  cl_platform_id      platform;
+  cl_command_queue      commands;
 
   //Function to print info
   void print_info() const; 
 
   //Functions to set values
-  void set_device(const cl_device_id device);
+  void set_device(const cl_device_id device, const int num);
   void set_data();
   void set_global_cache_size();
   void set_global_cacheline_size();
@@ -101,8 +114,36 @@ struct GPU
   void set_max_work_group_size();
   void set_max_work_item_dim();
   void set_max_work_item_sizes();
+  void set_supports_double();
+//  void set_platform_id();
   unsigned long safe_set(const cl_device_info);
+
+  //create context, program, kernel, etc
+  void create_command_queue(const GPU_PLATFORM& platform);
+
+  //queue a command
+  void queue_command(const GPU_KERNEL& kernel,const size_t work_dim,
+                     const size_t* global_work_size_array, 
+                     const size_t* local_work_size_array);
+
+  //reading and writing buffers
+  void read_to_host(const cl_mem buffer, 
+                    const size_t offset, const size_t bytes, 
+                    void* pointer);
+  
 };
+
+//-----------------------------------------------------------------------
+// destructor
+//-----------------------------------------------------------------------
+GPU::~GPU()
+{
+//  clReleaseCommandQueue(commands); 
+/*
+  clReleaseProgram(program);
+  clReleaseKernel(kernel);
+  */
+}
 
 //-----------------------------------------------------------------------
 // print_info
@@ -110,7 +151,7 @@ struct GPU
 //-----------------------------------------------------------------------
 void GPU::print_info() const
 {
-  printf("GPU Memory Parameters\n");
+  printf("GPU Memory Parameters on GPU #%d\n",dev_num);
   printf("Global Cache Size     (bytes)  %lu \n",global_cache_size);  
   printf("Global CacheLine Size (bytes)  %lu \n",global_cacheline_size);  
   printf("Global Memory Size    (bytes)  %lu \n",global_mem_size);
@@ -133,9 +174,10 @@ void GPU::print_info() const
 //-----------------------------------------------------------------------
 // set_device
 //-----------------------------------------------------------------------
-void GPU::set_device(const cl_device_id dev)
+void GPU::set_device(const cl_device_id dev, const int num)
 {
   device = dev;
+  dev_num = num;
 }
 
 //-----------------------------------------------------------------------
@@ -143,6 +185,7 @@ void GPU::set_device(const cl_device_id dev)
 //-----------------------------------------------------------------------
 void GPU::set_data()
 {
+//  set_platform_id();
   set_global_cache_size();
   set_global_cacheline_size();
   set_global_mem_size();
@@ -153,6 +196,7 @@ void GPU::set_data()
   set_max_work_group_size();
   set_max_work_item_dim();
   set_max_work_item_sizes();
+  set_supports_double();
 }
 
 
@@ -171,7 +215,8 @@ unsigned long GPU::safe_set(const cl_device_info info)
                                &actual_bytes);
   if (err != CL_SUCCESS)
   {
-    printf("ERROR GPU::safe_set could not retrieve actual bytes \n");exit(1);
+    printf("ERROR libj::GPU::safe_set could not retrieve actual bytes on GPU #%d\n",dev_num);
+    exit(1);
   }
 
   if (actual_bytes == 4)
@@ -182,7 +227,8 @@ unsigned long GPU::safe_set(const cl_device_info info)
                           &size4,NULL);
     if (err != CL_SUCCESS)
     {
-      printf("ERROR GPU::safe_set could not get device info \n");exit(1);
+      printf("ERROR libj::GPU::safe_set could not get device info on GPU #%d\n",dev_num);
+      exit(1);
     }
     return (unsigned long) size4;
 
@@ -193,7 +239,8 @@ unsigned long GPU::safe_set(const cl_device_info info)
                           &size8,NULL);
     if (err != CL_SUCCESS)
     {
-      printf("ERROR GPU::safe_set could not get device info \n");exit(1);
+      printf("ERROR libj::GPU::safe_set could not get device info on GPU #%d\n",dev_num);
+      exit(1);
     }
     return (unsigned long) size8;
 
@@ -204,12 +251,13 @@ unsigned long GPU::safe_set(const cl_device_info info)
                           &size16,NULL);
     if (err != CL_SUCCESS)
     {
-      printf("ERROR GPU::safe_set could not get device info \n");exit(1);
+      printf("ERROR libj::GPU::safe_set could not get device info on GPU #%d\n",dev_num);
+      exit(1);
     }
     return (unsigned long) size16;
 
   } else {
-    printf("ERROR GPU::safe_set is not coded to work with %zu byte values \n",
+    printf("ERROR libj::GPU::safe_set is not coded to work with %zu byte values \n",
            actual_bytes);
     exit(1);
   } 
@@ -264,6 +312,37 @@ void GPU::set_max_alloc_size()
 }
 
 //-----------------------------------------------------------------------
+//  set_supports_double
+//	determines if the GPU supports doubles
+//	based on the length of CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE
+//-----------------------------------------------------------------------
+void GPU::set_supports_double()
+{
+  cl_uint width = safe_set(CL_DEVICE_PREFERRED_VECTOR_WIDTH_DOUBLE);
+  supports_double = true ? width != 0 : false;
+}
+ 
+
+/*
+//-----------------------------------------------------------------------
+// set_platform_id
+//-----------------------------------------------------------------------
+void GPU::set_platform_id()
+{
+  cl_int err;
+  err = clGetDeviceInfo(device,CL_DEVICE_PLATFORM,
+                        sizeof(cl_platform_id),
+                        &platform,
+                        NULL);
+  if (err != CL_SUCCESS)
+  {
+    printf("ERROR libj::GPU::set_platform_id failted on GPU #%d\n",dev_num);
+    exit(1);
+  }
+}
+*/
+
+//-----------------------------------------------------------------------
 // set_max_compute_units
 //-----------------------------------------------------------------------
 void GPU::set_max_compute_units()
@@ -274,7 +353,7 @@ void GPU::set_max_compute_units()
                                NULL);
   if (err != CL_SUCCESS) 
   {
-    printf("ERROR GPU::set_max_compute_units failed\n");
+    printf("ERROR libj::GPU::set_max_compute_units failed on GPU #%d\n",dev_num);
     exit(1);
   }
 }
@@ -290,7 +369,7 @@ void GPU::set_max_work_group_size()
                                NULL);
   if (err != CL_SUCCESS) 
   {
-    printf("ERROR GPU::set_max_work_group_size failed\n");
+    printf("ERROR libj::GPU::set_max_work_group_size failed for GPU #%d\n",dev_num);
     exit(1);
   }
 }
@@ -306,7 +385,7 @@ void GPU::set_max_work_item_dim()
                                NULL);
   if (err != CL_SUCCESS) 
   {
-    printf("ERROR GPU::set_max_work_item_dim failed\n");
+    printf("ERROR libj::GPU::set_max_work_item_dim failed for GPU #%d\n",dev_num);
     exit(1);
   }
 }
@@ -324,7 +403,7 @@ void GPU::set_max_work_item_sizes()
                                NULL);
   if (err != CL_SUCCESS) 
   {
-    printf("ERROR GPU::set_max_work_item_sizes failed\n");
+    printf("ERROR libj::GPU::set_max_work_item_sizes failed on GPU #%d\n",dev_num);
     exit(1);
   }
 
@@ -336,6 +415,56 @@ void GPU::set_max_work_item_sizes()
 
   free(tmp);
 
+}
+
+//-----------------------------------------------------------------------
+// create_command_queue
+//   create the command queue
+//	this takes the default options for now
+//-----------------------------------------------------------------------
+void GPU::create_command_queue(const GPU_PLATFORM& platform)
+{
+  cl_int err;
+  commands = clCreateCommandQueue(platform.context,device,0,&err);
+  if (err != CL_SUCCESS)
+  {
+    printf("ERROR libj::GPU::create_command_queue failed on GPU #%d\n",dev_num);
+    exit(1);
+  } 
+}
+
+//-----------------------------------------------------------------------
+// queue the command for right-away execution
+//-----------------------------------------------------------------------
+void GPU::queue_command(const GPU_KERNEL& kernel,const size_t work_dim,
+                        const size_t* global_work_size_array, 
+                        const size_t* local_work_size_array)
+{
+  cl_int err = clEnqueueNDRangeKernel(commands,kernel.kernel,work_dim,
+                                      NULL,global_work_size_array,
+                                      local_work_size_array,
+                                      0,NULL,NULL);
+  if (err != CL_SUCCESS)
+  {
+    printf("ERROR libj::GPU::queue_command failed with error %d \n",err);
+    exit(1);
+  }
+}
+
+//-----------------------------------------------------------------------
+// read_to_host
+//	read a buffer to host memory from device
+//-----------------------------------------------------------------------
+void GPU::read_to_host(const cl_mem buffer, const size_t offset, const size_t bytes, 
+                       void* pointer)
+{
+  cl_int err = clEnqueueReadBuffer(commands,buffer,CL_TRUE,offset,bytes,
+                                   pointer,0,NULL,NULL);
+  if (err != CL_SUCCESS)
+  {
+    printf("ERROR libj::GPU::read_to_host failed with status %d \n",err);
+    exit(1);
+  }
 }
 
 }//end namespace
