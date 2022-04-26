@@ -9,8 +9,10 @@
   The storage is column major
 
   Note that the index access via () is implemented via a varadic template, 
-  and thus should be rather efficient, though [], which accesses based on the
-  stride should still be prefered
+  and thus should be rather efficient, though [], which accesses simply a 
+  displacement from the buffer pointer, is the most efficient provided you are
+  certain you are using it correctly! 
+
 
   INITIALIZATION
   -------------------
@@ -44,6 +46,8 @@
   To use the index access
     T(1,2,3);
 
+  To use vector access
+    T({1,2,3});
 
   USEFUL FUNCTIONS
   --------------------
@@ -62,7 +66,6 @@
             l0,l1,l1);		// starting at (i,j,k) and dimension (l0,l1,l2) 
     auto T1 = T2.block(...);	//makes a new tensor out of a block of an old
 				// tensor 	
-    T.info();			//prints a bunch of info
 ----------------------------------------------------------------------------*/
 #ifndef TENSOR_HPP
 #define TENSOR_HPP
@@ -176,7 +179,6 @@ class tensor
   //equals assign
   void operator= (const tensor<T>& other);
 
-
   //Getters
   const size_t  size() const {return M_NELM;}
   const size_t  size(const size_t dim) const {return M_LENGTHS[dim];}
@@ -200,6 +202,19 @@ class tensor
   template<class...Rest> const T& operator() (const size_t i0,const Rest...rest) const
   {
     return *(M_BUFFER + i0*M_STRIDE[0] + m_index(1,rest...));
+  }
+
+  T& operator() (const std::vector<size_t> vec)
+  {
+    size_t offset = 0;
+    for (size_t dim=0;dim<M_NDIM;dim++) {offset += M_STRIDE[dim]*vec[dim];}
+    return *(M_BUFFER+offset);
+  }
+  const T& operator() (const std::vector<size_t> vec) const
+  {
+    size_t offset = 0;
+    for (size_t dim=0;dim<M_NDIM;dim++) {offset += M_STRIDE[dim]*vec[dim];}
+    return *(M_BUFFER+offset);
   }
 
   //Create a block
@@ -434,8 +449,8 @@ void tensor<T>::m_sequential()
   size_t NN = 1;
   for (size_t dim=0;dim<M_NDIM;dim++)
   {
-    printf("dimension %zu, stride = %zu, NN = %zu, length = %zu \n",
-           dim,M_STRIDE[dim],NN,M_LENGTHS[dim]);
+//    printf("dimension %zu, stride = %zu, NN = %zu, length = %zu \n",
+//           dim,M_STRIDE[dim],NN,M_LENGTHS[dim]);
     if (NN != M_STRIDE[dim]) {M_IS_SEQUENTIAL = false; return;}
     NN *= M_LENGTHS[dim];
   }
