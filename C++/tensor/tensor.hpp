@@ -37,7 +37,6 @@
   Reassignment (including reshaping)
     T.assign(pointer, 2,5,1);
   
-
   ELEMENT ACCESS
   ------------------
   To access the n'th element
@@ -62,10 +61,9 @@
     T.is_assigned();		//returns true if assigned
     T.is_set();			//returns true if allocated or assigned
     T.is_sequential();		//returns true if elements of tensor are sequential
-    T.block(i,j,k,		//returns a tensor that access a block of tensor T
-            l0,l1,l1);		// starting at (i,j,k) and dimension (l0,l1,l2) 
-    auto T1 = T2.block(...);	//makes a new tensor out of a block of an old
-				// tensor 	
+    T.offset({vector});		//returns the offset from start for a set of indicies
+    T.data();			//returns data buffer pointer 
+    
 ----------------------------------------------------------------------------*/
 #ifndef TENSOR_HPP
 #define TENSOR_HPP
@@ -103,6 +101,7 @@ class tensor
   void m_allocate();
   void m_aligned_allocate(const size_t BYTES);
   void m_assign(T* pointer);
+  void m_assign(const T* pointer);
   void m_sequential();
 
   //internal varadic templates for data access
@@ -115,6 +114,8 @@ class tensor
   {
     return first*M_STRIDE[level];
   }
+  size_t m_index(const size_t level) const {return 0;}
+  
 
   //internal varadic templates for initialization
   void m_init()
@@ -146,12 +147,14 @@ class tensor
   }
 
   //Internal varadic templates for block
+/*
   template<class...Rest> 
   void m_block(const size_t level, std::vector<size_t>& start,
                std::vector<size_t>& length, const size_t first,
                const Rest...rest) const;
   void m_block(const size_t level, std::vector<size_t>& start,
                std::vector<size_t>& length, const size_t last) const;
+*/
   
   public:
 
@@ -164,8 +167,9 @@ class tensor
 
   //Assign constructor
   template<class...Rest> tensor(T* pointer, const size_t first,const Rest...rest);
+  template<class...Rest> tensor(const T* pointer, const size_t first,const Rest...rest);
 
-  //Equals constructor
+  //Copy assignment
   tensor(const tensor<T>& other);
 
   //allocate,assign
@@ -173,11 +177,12 @@ class tensor
   template<class...Rest> void aligned_allocate(const size_t BYTES, const size_t first,
                                                const Rest...rest);
   template<class...Rest> void assign(T* pointer, const size_t first,const Rest...rest);
+  template<class...Rest> void assign(const T* pointer, const size_t first,const Rest...rest);
   void deallocate();
   void unassign();
 
   //equals assign
-  void operator= (const tensor<T>& other);
+  tensor<T>& operator= (const tensor<T>& other);
 
   //Getters
   const size_t  size() const {return M_NELM;}
@@ -217,9 +222,23 @@ class tensor
     return *(M_BUFFER+offset);
   }
 
+  //Offset function
+  size_t offset(const std::vector<size_t> vec) const
+  {
+    size_t offset = 0;
+    for (size_t dim=0;dim<M_NDIM;dim++) {offset += M_STRIDE[dim]*vec[dim];}
+    return offset; 
+  }
+
+  //Data function
+  T* data() {return M_BUFFER;}
+  const T* data() const {return M_BUFFER;}
+
+
   //Create a block
+/*
   template<class...Rest> tensor<T> block(const size_t first, const Rest...rest) const;
-//  tensor<T> block(const size_t first, ...) const;
+*/
 
   template<typename T1, typename T2> friend bool can_alias(const tensor<T1>& A, 
                                                            const tensor<T2>& B);
@@ -306,6 +325,7 @@ tensor<T>::tensor(const size_t first,const Rest...rest)
   m_set_default();
 
   //initialize
+  printf("we is here?\n");
   M_LENGTHS.push_back(first);
   M_STRIDE.push_back(1);
   M_NELM = first; 
@@ -321,6 +341,25 @@ tensor<T>::tensor(const size_t first,const Rest...rest)
 //-----------------------------------------------------------------------
 template<typename T> template<class...Rest>
 tensor<T>::tensor(T* pointer, const size_t first,const Rest...rest)
+{
+  //set the default
+  m_set_default();
+
+  //Initialize
+  M_LENGTHS.push_back(first);
+  M_STRIDE.push_back(1);
+  M_NELM = first; 
+  m_init(rest...);//performs rest of varadic initialization
+
+  //call the internal allocate function
+  m_assign(pointer);
+}
+
+//-----------------------------------------------------------------------
+//Assignment constructor
+//-----------------------------------------------------------------------
+template<typename T> template<class...Rest>
+tensor<T>::tensor(const T* pointer, const size_t first,const Rest...rest)
 {
   //set the default
   m_set_default();
@@ -383,6 +422,25 @@ void tensor<T>::m_assign(T* pointer)
    }
 }
 
+//-----------------------------------------------------------------------
+// internal assign
+//-----------------------------------------------------------------------
+template<typename T>
+void tensor<T>::m_assign(const T* pointer)
+{
+  if (!M_IS_ALLOCATED)
+  {
+    M_BUFFER = pointer;
+    M_POINTER = pointer;
+    M_IS_ASSIGNED = true;
+    M_ALIGNMENT = libj::calc_alignment((void*) M_BUFFER);
+    m_sequential();
+  } else {
+    printf("ERROR libj::tensor::m_assign\n");
+    printf("attempted to assign an already allocated vector\n");
+    exit(1);
+   }
+}
 //----------------------------------------------------------------------------
 // internal aligned_allocate 
 //----------------------------------------------------------------------------
@@ -553,10 +611,10 @@ void tensor<T>::unassign()
 } 
 
 //-----------------------------------------------------------------------
-// equals assignment 
+// copy assignment constructor 
 //-----------------------------------------------------------------------
 template <typename T>
-void tensor<T>::operator= (const tensor<T>& other)
+tensor<T>& tensor<T>::operator= (const tensor<T>& other)
 {
   //First, make sure this tensor is not allocated and the other is set 
   if (is_allocated())
@@ -586,10 +644,11 @@ void tensor<T>::operator= (const tensor<T>& other)
   //assign to the buffer of the other
   m_assign(other.M_BUFFER);
 
+  return *this;
 }
 
 //-----------------------------------------------------------------------
-// equals constructor
+// copy constructor
 //-----------------------------------------------------------------------
 template <typename T>
 tensor<T>::tensor(const tensor<T>& other)
@@ -626,6 +685,7 @@ tensor<T>::tensor(const tensor<T>& other)
 // 	The first NDIM elements are the starting indices
 //	  the next NDIM elements are the lengths of the blocks
 //-----------------------------------------------------------------------
+/*
 template <typename T> template<class...Rest>
 tensor<T> tensor<T>::block(const size_t first, const Rest...rest) const
 {
@@ -662,11 +722,13 @@ tensor<T> tensor<T>::block(const size_t first, const Rest...rest) const
   return TNEW;
 
 }
+*/
 
 //-----------------------------------------------------------------------
 // m_block
 //	internal function to construct block of matrix
 //-----------------------------------------------------------------------
+/*
 template<typename T>
 void tensor<T>::m_block(const size_t level, std::vector<size_t>& start,
                         std::vector<size_t>& length, const size_t last) const
@@ -682,6 +744,7 @@ void tensor<T>::m_block(const size_t level, std::vector<size_t>& start,
   level < M_NDIM ? start[level] = first : length[level-M_NDIM] = first;
   m_block(level+1,start,length,rest...);
 }
+*/
 
 }//end of namespace
 
