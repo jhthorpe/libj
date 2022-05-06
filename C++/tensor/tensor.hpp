@@ -325,7 +325,6 @@ tensor<T>::tensor(const size_t first,const Rest...rest)
   m_set_default();
 
   //initialize
-  printf("we is here?\n");
   M_LENGTHS.push_back(first);
   M_STRIDE.push_back(1);
   M_NELM = first; 

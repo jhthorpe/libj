@@ -12,6 +12,16 @@
   NOTE : we const_cast the buffer pointer from the references tensor_matrix,
          be super careful that you are calling const when you need to be...
 
+  Useful functions
+  ------------------------
+  
+  Blocking information:
+  T.block_num(dim); 		//number of blocks in dimension "dim"
+  T.block_size(dim);		//size of blocks in dimension "dim"
+  T.block_id(dim,index);	//block which index falls into in dimension "dim"
+  T.block_stride(dim,block);	//stride of block "block" in dimension "dim"
+  T.next_block_index(dim,index);//returns the starting index of the next block
+
 ----------------------------------------------------------------------------*/
 #ifndef BLOCK_SCATTER_MATRIX_HPP
 #define BLOCK_SCATTER_MATRIX_HPP
@@ -44,10 +54,11 @@ class block_scatter_matrix
   size_t                 M_NELM;        //number of total elements
   size_t                 M_NROW;        //number of rows 
   size_t                 M_NCOL;        //number of cols 
-  size_t                 M_NRB;        //number of row blocks
-  size_t                 M_NCB;        //number of col blocks
+  size_t                 M_NRB;         //number of row blocks
+  size_t                 M_NCB;         //number of col blocks
   size_t                 M_RBL;		//size of row blocks
   size_t                 M_CBL;		//size of col blocks
+  bool                   M_SEQ;         //bool tracking if is sequential
 
   //internal functions
   void m_set_default();
@@ -92,7 +103,16 @@ class block_scatter_matrix
   {
     return dim == 0 ? M_RBS[block] : M_CBS[block];
   }
-
+  size_t block_id(const size_t dim, const size_t index)
+  {
+    return dim == 0 ? std::min(index,M_NROW) / M_RBL
+                    : std::min(index,M_NCOL) / M_CBL; 
+  }
+  size_t next_block_index(const size_t dim, const size_t index)
+  {
+    return dim == 0 ? M_RBL*(block_id(0,index)+1)
+                    : M_CBL*(block_id(1,index)+1);
+  }
 
   //Data operator
   T* data() {return M_BUFFER;}
