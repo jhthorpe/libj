@@ -3,6 +3,10 @@
 	JHT, April 27, 2022 : created
 
   class which contains information about index bundles
+
+  Functionality
+  ------------------
+  bunde.offset(index);  //returns the offset of this element in the original tensor
 ---------------------------------------------------------------------------------------*/
 
 #ifndef INDEX_BUNDLE_HPP
@@ -20,12 +24,13 @@ namespace libj
 //------------------------------------------------------------------------
 struct index_bundle
 {
-  size_t              NDIM;   //number of dimensions
+  size_t              NDIM;   //number of dimensions in bundle
   size_t              NELM;   //number of elements
   size_t              START;  //starting index (for blocking)
-  std::vector<size_t> DIM;    //dimension list
-  std::vector<size_t> STRIDE; //stride list
-  std::vector<size_t> LENGTH; //length list
+  std::vector<size_t> DIM;    //dimension list that maps between bundle and original
+  std::vector<size_t> STRIDE; //stride list of each dimension in THIS bundle
+  std::vector<size_t> LENGTH; //length list of each dimension in original tensor
+  std::vector<size_t> LDA;    //stride list of each dimension in orignal tensor
 
   //initialize the bundle to nothing
   index_bundle()
@@ -42,6 +47,7 @@ struct index_bundle
     DIM = other.DIM;
     STRIDE = other.STRIDE;
     LENGTH = other.LENGTH;
+    LDA = other.LDA;
   }
 
   //copy assignment
@@ -56,6 +62,7 @@ struct index_bundle
     DIM = other.DIM;
     STRIDE = other.STRIDE;
     LENGTH = other.LENGTH;
+    LDA = other.LDA;
     return *this;
   }
 
@@ -68,6 +75,7 @@ struct index_bundle
     DIM.clear();
     STRIDE.clear();
     LENGTH.clear();
+    LDA.clear();
   }
 
   size_t size() const {return NELM;}
@@ -86,13 +94,14 @@ struct index_bundle
 
   //make the bundle
   template<typename T>
-  void make_bundle(libj::tensor<T>& tens, const std::string& str)
+  void make_bundle(const libj::tensor<T>& tens, const std::string& str)
   {
     NDIM = str.length();
 
-    DIM.resize(NDIM);
-    STRIDE.resize(NDIM);
-    LENGTH.resize(NDIM);
+    if (DIM.size() < NDIM) {DIM.resize(NDIM);}
+    if (STRIDE.size() < NDIM) {STRIDE.resize(NDIM);}
+    if (LENGTH.size() < NDIM) {LENGTH.resize(NDIM);}
+    if (LDA.size() < NDIM) {LDA.resize(NDIM);}
    
     NELM = 1;
     for (size_t idx=0;idx<NDIM;idx++)
@@ -100,6 +109,7 @@ struct index_bundle
       const size_t dim = c2dim(str[idx]);
       DIM[idx] = dim;
       LENGTH[idx] = tens.size(dim);
+      LDA[idx] = tens.stride(dim);
       idx > 0 ? STRIDE[idx] = STRIDE[idx-1]*LENGTH[idx-1] : STRIDE[0] = 1;
       NELM *= LENGTH[idx]; 
     }
@@ -116,7 +126,20 @@ struct index_bundle
     block.DIM = DIM;
     block.STRIDE = STRIDE;
     block.LENGTH = LENGTH;
+    block.LDA = LDA;
     return block;
+  }
+
+  //returns the offset of an index of this particular bundle in the 
+  //  original tensor
+  size_t offset(const size_t I) const
+  {
+    size_t off=0;
+    for (size_t dim=0;dim<NDIM;dim++)
+    {
+      off += LDA[dim]*get_index(I,dim); 
+    }  
+    return off;
   }
 
 }; //end class

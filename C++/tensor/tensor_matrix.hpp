@@ -101,7 +101,7 @@ class tensor_matrix
   const T& operator() (const size_t I, const size_t J) const;
 
   //offset function
-  const size_t offset(const size_t I, const size_t J) const;
+  size_t offset(const size_t I, const size_t J) const;
 
   //data function
   T* data() {return M_BUFFER;}
@@ -289,8 +289,9 @@ const T& tensor_matrix<T>::operator() (const size_t I, const size_t J) const
 //	returns offset for bundle indices in the original matrix
 //-----------------------------------------------------------------------------------------
 template <typename T>
-const size_t tensor_matrix<T>::offset(const size_t I, const size_t J) const
+size_t tensor_matrix<T>::offset(const size_t I, const size_t J) const
 {
+  /*
   std::vector<size_t> vec(M_LHS.NDIM + M_RHS.NDIM);
 
   //LHS
@@ -308,6 +309,8 @@ const size_t tensor_matrix<T>::offset(const size_t I, const size_t J) const
   }
 
   return M_TENSOR.offset(vec); 
+  */
+  return M_LHS.offset(I) + M_RHS.offset(J);
 
 }
 

@@ -89,7 +89,7 @@ class tensor
   T*                  M_POINTER;       //pointer to malloc	
   std::vector<size_t> M_LENGTHS;       //vector of lengths 
   std::vector<size_t> M_STRIDE;        //pointer to strides
-  size_t	      M_NDIM;          //number of dimensions
+  size_t	          M_NDIM;          //number of dimensions
   size_t              M_NELM;          //total number of elements
   size_t              M_ALIGNMENT;     //alignment in bytes
   bool                M_IS_ALLOCATED;  //tensor is allocated with malloc 
@@ -185,15 +185,15 @@ class tensor
   tensor<T>& operator= (const tensor<T>& other);
 
   //Getters
-  const size_t  size() const {return M_NELM;}
-  const size_t  size(const size_t dim) const {return M_LENGTHS[dim];}
-  const size_t  dim() const {return M_NDIM;}
-  const size_t  alignment() const {return M_ALIGNMENT;}
-  const size_t  stride(const size_t dim) const {return M_STRIDE[dim];}
-  const bool    is_allocated() const {return M_IS_ALLOCATED;}
-  const bool    is_assigned() const {return M_IS_ASSIGNED;}
-  const bool    is_set() const {return M_IS_ALLOCATED || M_IS_ASSIGNED;}
-  const bool    is_sequential() const {return M_IS_SEQUENTIAL;}
+  size_t size() const {return M_NELM;}
+  size_t size(const size_t dim) const {return M_LENGTHS[dim];}
+  size_t dim() const {return M_NDIM;}
+  size_t alignment() const {return M_ALIGNMENT;}
+  size_t stride(const size_t dim) const {return M_STRIDE[dim];}
+  bool   is_allocated() const {return M_IS_ALLOCATED;}
+  bool   is_assigned() const {return M_IS_ASSIGNED;}
+  bool   is_set() const {return M_IS_ALLOCATED || M_IS_ASSIGNED;}
+  bool   is_sequential() const {return M_IS_SEQUENTIAL;}
 
   //Access functions
   T& operator[] (const size_t stride) {return *(M_BUFFER+stride);}

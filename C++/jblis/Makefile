@@ -30,4 +30,5 @@ clean :
 	for i in $(levels); do \
 		$(MAKE) -C $$i clean; \
 	done 
+	rm $(libdir)/jblis.a
 

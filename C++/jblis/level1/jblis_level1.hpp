@@ -20,7 +20,6 @@
 #include "tensor_matrix.hpp"
 #include "scatter_matrix.hpp"
 #include "block_scatter_matrix.hpp"
-#include "cache.h"
 #include "libjdef.h"
 
 #if defined (__AVX512F__)

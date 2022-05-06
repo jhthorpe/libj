@@ -1,11 +1,12 @@
 SHELL:=/bin/bash
 include make.config
 
-dirs := core array simd fsys linal timer jblis para
+#dirs := core array simd fsys linal timer jblis para
+dirs := timer tensor jblis
 lib := $(libdir)/libj.a
 
 
-all : 
+all : $(incdir)/libjdef.h 
 	if [ ! -d $(objdir) ]; then mkdir -p $(objdir); fi
 	if [ ! -d $(incdir) ]; then mkdir -p $(incdir); fi
 	@set-e; \
@@ -19,11 +20,12 @@ all :
 	done 
 	$(MAKE) $(lib)
 
+$(incdir)/libjdef.h : libjdef.h
+	cp libjdef.h $(incdir)/libjdef.h
 
-$(lib): $(objdir)/*.o
+$(lib): $(objdir)/*.o $(incdir)/libjdef.h
 	$(LC) $(LCFLAGS) $(libdir)/libj.a $(objdir)/*.o 
-	cp ./inc/libj.hpp $(incdir)
-	cp ./inc/libjdef.h $(incdir)
+#	cp ./inc/libj.hpp $(incdir)
 
 clean:
 	-rm $(objdir)/*.o $(incdir)/*.hpp $(incdir)/*.h $(libdir)/libj.a

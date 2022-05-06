@@ -62,7 +62,8 @@ class block_scatter_matrix
 
   //internal functions
   void m_set_default();
-  void m_set_scatter(const libj::tensor_matrix<T>& TMAT, const size_t RBL, const size_t CBL);
+  void m_set_scatter(const libj::tensor_matrix<T>& TMAT, 
+                     const size_t RBL, const size_t CBL);
   void m_set_block(const size_t RBL, const size_t CBL);
   
   public:
@@ -199,19 +200,20 @@ void block_scatter_matrix<T>::m_set_scatter(const libj::tensor_matrix<T>& TMAT,
   }
 
   //set the row and scatter matrices
-  M_RSCAT.resize(M_NROW);
-  M_CSCAT.resize(M_NCOL);
+  if (M_RSCAT.size() < M_NROW) {M_RSCAT.resize(M_NROW);}
+  if (M_CSCAT.size() < M_NCOL) {M_CSCAT.resize(M_NCOL);}
   
   //set the row scatter vector
+  const size_t off00 = TMAT.offset(0,0);
   for (size_t I=0;I<M_NROW;I++)
   {
-    M_RSCAT[I] = TMAT.offset(I,0) - TMAT.offset(0,0);
+    M_RSCAT[I] = TMAT.offset(I,0) - off00;
   }
 
   //set the col scatter vector
   for (size_t J=0;J<M_NCOL;J++)
   {
-    M_CSCAT[J] = TMAT.offset(0,J) - TMAT.offset(0,0);
+    M_CSCAT[J] = TMAT.offset(0,J) - off00;
   }
 
   //set the block paramters
@@ -235,8 +237,8 @@ void block_scatter_matrix<T>::m_set_block(const size_t RBL,const size_t CBL)
   M_NCB = (M_NCOL + M_CBL - 1) / M_CBL; 
 
   //resize the vectors if needed
-  M_RBS.resize(M_NRB);
-  M_CBS.resize(M_NCB);
+  if (M_RBS.size() < M_NRB) {M_RBS.resize(M_NRB);}
+  if (M_CBS.size() < M_NCB) {M_CBS.resize(M_NCB);}
 
   //Construct row blocks
   for (size_t block=0; block < M_NRB; block++)
