@@ -22,6 +22,11 @@
   T.block_stride(dim,block);	//stride of block "block" in dimension "dim"
   T.next_block_index(dim,index);//returns the starting index of the next block
 
+  Assigning to a block of a tensor_matrix
+  T.assign_to_block(MATRIX,row_start,col_start,
+                   row_len,col_len,
+                   row_block_len,col_block_len);
+
 ----------------------------------------------------------------------------*/
 #ifndef BLOCK_SCATTER_MATRIX_HPP
 #define BLOCK_SCATTER_MATRIX_HPP
@@ -65,6 +70,10 @@ class block_scatter_matrix
   void m_set_scatter(const libj::tensor_matrix<T>& TMAT, 
                      const size_t RBL, const size_t CBL);
   void m_set_block(const size_t RBL, const size_t CBL);
+
+  //test
+  void m_rscat(const libj::tensor_matrix<T>& TMAT);
+  void m_cscat(const libj::tensor_matrix<T>& TMAT);
   
   public:
 
@@ -79,45 +88,51 @@ class block_scatter_matrix
   void assign(const libj::tensor_matrix<T>& TMAT, 
               const size_t RBL, const size_t CBL);
 
+  void assign_to_block(const libj::tensor_matrix<T>& TMAT,
+                       const size_t ROW, const size_t COL,
+                       const size_t NROW, const size_t NCOL,
+                       const size_t RBL, const size_t CBL);
+
   //Access operator
-  T& operator() (const size_t I, const size_t J) 
+   T& operator() (const size_t I, const size_t J) 
   {
-    return *(M_BUFFER + M_RSCAT[I] + M_CSCAT[J]);
+//    return *(M_BUFFER + M_RSCAT[I] + M_CSCAT[J]);
+    return *(M_BUFFER + M_RSCAT.at(I) + M_CSCAT.at(J));
   }
-  const T& operator() (const size_t I, const size_t J) const
+   const T& operator() (const size_t I, const size_t J) const
   {
     return *(M_BUFFER + M_RSCAT[I] + M_CSCAT[J]); 
   }
 
   //size
-  size_t size() const {return M_NELM;}
-  size_t size(const size_t dim) const {return dim == 0 ? M_NROW : M_NCOL;}
+   size_t size() const {return M_NELM;}
+   size_t size(const size_t dim) const {return dim == 0 ? M_NROW : M_NCOL;}
 
   //block information
-  size_t block_num(const size_t dim) const {return dim == 0 ? M_NRB : M_NCB;}
-  size_t block_size(const size_t dim) const {return dim == 0 ? M_RBL : M_CBL;}
-  size_t block_size(const size_t dim, const size_t block) const 
+   size_t block_num(const size_t dim) const {return dim == 0 ? M_NRB : M_NCB;}
+   size_t block_size(const size_t dim) const {return dim == 0 ? M_RBL : M_CBL;}
+   size_t block_size(const size_t dim, const size_t block) const 
   {
     return dim == 0 ? std::min(M_RBL,M_NROW - (M_RBL*block)) 
                     : std::min(M_CBL,M_NCOL - (M_CBL*block));}
-  size_t block_stride(const size_t dim, const size_t block) const
+   size_t block_stride(const size_t dim, const size_t block) const
   {
     return dim == 0 ? M_RBS[block] : M_CBS[block];
   }
-  size_t block_id(const size_t dim, const size_t index)
+   size_t block_id(const size_t dim, const size_t index)
   {
     return dim == 0 ? std::min(index,M_NROW) / M_RBL
                     : std::min(index,M_NCOL) / M_CBL; 
   }
-  size_t next_block_index(const size_t dim, const size_t index)
+   size_t next_block_index(const size_t dim, const size_t index)
   {
     return dim == 0 ? M_RBL*(block_id(0,index)+1)
                     : M_CBL*(block_id(1,index)+1);
   }
 
   //Data operator
-  T* data() {return M_BUFFER;}
-  const T* data() const {return M_BUFFER;}
+   T* data() {return M_BUFFER;}
+   const T* data() const {return M_BUFFER;}
 
 };//end of class
 
@@ -200,8 +215,8 @@ void block_scatter_matrix<T>::m_set_scatter(const libj::tensor_matrix<T>& TMAT,
   }
 
   //set the row and scatter matrices
-  if (M_RSCAT.size() < M_NROW) {M_RSCAT.resize(M_NROW);}
-  if (M_CSCAT.size() < M_NCOL) {M_CSCAT.resize(M_NCOL);}
+  if (M_RSCAT.size() < M_NROW) {M_RSCAT.resize(std::max((size_t)1,M_NROW));}
+  if (M_CSCAT.size() < M_NCOL) {M_CSCAT.resize(std::max((size_t)1,M_NCOL));}
   
   //set the row scatter vector
   const size_t off00 = TMAT.offset(0,0);
@@ -218,7 +233,7 @@ void block_scatter_matrix<T>::m_set_scatter(const libj::tensor_matrix<T>& TMAT,
 
   //set the block paramters
   m_set_block(RBL,CBL);
-  
+
 }
 
 //------------------------------------------------------------------------
@@ -226,7 +241,7 @@ void block_scatter_matrix<T>::m_set_scatter(const libj::tensor_matrix<T>& TMAT,
 //	sets the blocking sizes based on the scatter vectors
 //------------------------------------------------------------------------
 template <typename T>
-void block_scatter_matrix<T>::m_set_block(const size_t RBL,const size_t CBL)
+inline void block_scatter_matrix<T>::m_set_block(const size_t RBL,const size_t CBL)
 {
   //set the block lengths
   M_RBL = RBL;
@@ -237,10 +252,11 @@ void block_scatter_matrix<T>::m_set_block(const size_t RBL,const size_t CBL)
   M_NCB = (M_NCOL + M_CBL - 1) / M_CBL; 
 
   //resize the vectors if needed
-  if (M_RBS.size() < M_NRB) {M_RBS.resize(M_NRB);}
-  if (M_CBS.size() < M_NCB) {M_CBS.resize(M_NCB);}
+  if (M_RBS.size() < M_NRB) {M_RBS.resize(std::max((size_t)1,M_NRB));}
+  if (M_CBS.size() < M_NCB) {M_CBS.resize(std::max((size_t)1,M_NCB));}
 
   //Construct row blocks
+  M_RBS[0] = 1; //for empty bundle
   for (size_t block=0; block < M_NRB; block++)
   {
     //determine row strides
@@ -268,9 +284,10 @@ void block_scatter_matrix<T>::m_set_block(const size_t RBL,const size_t CBL)
   }
 
   //Construct col blocks
+  M_CBS[0] = 1; //for empty bundle
   for (size_t block=0; block < M_NCB; block++)
   {
-    //determine row strides
+    //determine col strides
     size_t stride;
     const size_t end = std::min(M_NCOL,(block+1)*M_CBL);
     const size_t start = block*M_CBL;
@@ -296,6 +313,48 @@ void block_scatter_matrix<T>::m_set_block(const size_t RBL,const size_t CBL)
 
 }
 
+//------------------------------------------------------------------------
+// assign_to_block
+//   assigns the block scatter matrix to a block of a tensor
+//   
+//   this is intended to be a high-speed interface to minimize overhead 
+//------------------------------------------------------------------------
+template <typename T>
+inline void block_scatter_matrix<T>::assign_to_block(const libj::tensor_matrix<T>& TMAT,
+                                                     const size_t ROW, const size_t COL,
+                                                     const size_t NROW, const size_t NCOL,
+                                                     const size_t RBL, const size_t CBL)
+{
+  //assign the buffer
+  M_BUFFER = const_cast<T*>(&TMAT(ROW,COL)); 
+
+  //set the dimensions and block lengths
+  M_NROW = std::min(NROW,TMAT.size(0)-ROW+1);
+  M_NCOL = std::min(NCOL,TMAT.size(1)-COL+1);
+  M_NELM = M_NROW*M_NCOL;
+
+  if (M_NELM <= 0) 
+  {
+    printf("ERROR libj::block_scatter_matrix::m_set_scatter \n");
+    printf("There are <= 0 elements in input tensor matrix\n");
+    exit(1);
+  }
+
+  //scatter vectors resize if needed
+  if (M_NROW > M_RSCAT.size()) {M_RSCAT.resize(std::max(M_NROW,(size_t)1));}
+  if (M_NCOL > M_CSCAT.size()) {M_CSCAT.resize(std::max(M_NCOL,(size_t)1));}
+
+  //now, set the scatter vectors
+  const size_t off00 = TMAT.offset(ROW,COL);
+  M_RSCAT[0] = 0;
+  TMAT.offset_col(ROW,COL,M_NROW,off00,M_RSCAT.data());
+  M_CSCAT[0] = 0;
+  TMAT.offset_row(ROW,COL,M_NCOL,off00,M_CSCAT.data());
+
+  //set the block elements
+  m_set_block(RBL,CBL);
+
+}
 
 }//end of namespace
 

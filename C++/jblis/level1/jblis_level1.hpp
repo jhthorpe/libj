@@ -21,6 +21,7 @@
 #include "scatter_matrix.hpp"
 #include "block_scatter_matrix.hpp"
 #include "libjdef.h"
+#include "cache.hpp"
 
 #if defined (__AVX512F__)
   #include <immintrin.h>

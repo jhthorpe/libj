@@ -2,7 +2,7 @@ SHELL:=/bin/bash
 include make.config
 
 #dirs := core array simd fsys linal timer jblis para
-dirs := timer tensor jblis
+dirs := timer tensor cache jblis
 lib := $(libdir)/libj.a
 
 
@@ -28,5 +28,12 @@ $(lib): $(objdir)/*.o $(incdir)/libjdef.h
 #	cp ./inc/libj.hpp $(incdir)
 
 clean:
-	-rm $(objdir)/*.o $(incdir)/*.hpp $(incdir)/*.h $(libdir)/libj.a
- 
+	@set-e; \
+	for i in $(dirs); do \
+		if [ -d $$i ]; then \
+			if [ -f $$i/Makefile ]; then \
+				echo "Compiling $$i"; \
+				$(MAKE) -C $$i clean; \
+			fi; \
+		fi; \
+	done

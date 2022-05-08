@@ -1,79 +1,68 @@
 /*---------------------------------------------------------------------------------------
-  index_bundle.hpp
+  index_bundle2.hpp
 	JHT, April 27, 2022 : created
 
   class which contains information about index bundles
+
+  This one has been optimized for performance
 
   Functionality
   ------------------
   bunde.offset(index);  //returns the offset of this element in the original tensor
 ---------------------------------------------------------------------------------------*/
 
-#ifndef INDEX_BUNDLE_HPP
-#define INDEX_BUNDLE_HPP
+#ifndef INDEX_BUNDLE2_HPP
+#define INDEX_BUNDLE2_HPP
 
+#include <array>
 #include <vector>
 #include <string>
 #include <algorithm> 
 #include <stdlib.h>
+#include "tensor.hpp"
+
+#define INDEX_UNROLL 4
 
 namespace libj
 {
 //------------------------------------------------------------------------
-// index struct 
+// index struct for fast access
 //------------------------------------------------------------------------
 struct index
 {
-  size_t LENGTH;
   size_t STRIDE;
+  size_t LENGTH;
   size_t LDA;
 };
+
 //------------------------------------------------------------------------
 // index bundle class
 //------------------------------------------------------------------------
-struct index_bundle
+template <typename T, size_t NDIM>
+struct index_bundle2
 {
-  size_t              NDIM;   //number of dimensions in bundle
-  size_t              NELM;   //number of elements
-  size_t              START;  //starting index (for blocking)
-  std::vector<size_t> DIM;    //dimension list that maps between bundle and original
-  std::vector<index>  IDX;    //vector of structs to help with locality  
-
-  //initialize the bundle to nothing
-  index_bundle()
-  {
-    clear();
-  }
+  size_t                   NELM;   //number of elements
+  size_t                   START;  //starting index (for blocking)
+  std::array<size_t,NDIM>  DIM;    //dimension list that maps between bundle and original
+  std::array<index,NDIM>   IDX;    //index list
 
   //copy constructor
-  index_bundle(const index_bundle& other)
+  index_bundle2(const index_bundle2& other)
   {
-    NDIM = other.NDIM;
-    NELM = other.NELM;
+    NELM  = other.NELM;
     START = other.START;
-    DIM = other.DIM;
-    IDX = other.IDX;
+    DIM   = other.DIM;
+    IDX   = other.IDX;
   }
 
   //copy assignment
-  index_bundle& operator= (const index_bundle& other)
+  index_bundle2& operator= (const index_bundle2& other)
   {
-    NDIM = other.NDIM;
-    NELM = other.NELM;
+    NELM  = other.NELM;
     START = other.START;
-    if (DIM.size() < NDIM) {DIM.resize(NDIM);}
-    if (IDX.size() < NDIM) {DIM.resize(NDIM);}
-    DIM = other.DIM;
-    IDX = other.IDX;
+    DIM   = other.DIM;
+    IDX   = other.IDX;
     return *this;
-  }
-
-  //clear the data in the bundle
-  void clear()
-  {
-    NDIM = 0;
-    NELM = 0;
-    START = 0;
   }
 
   size_t size() const {return NELM;}
@@ -91,43 +80,31 @@ struct index_bundle
   }
 
   //make the bundle
-  template<typename T>
   void make_bundle(const libj::tensor<T>& tens, const std::string& str)
   {
-    NDIM = str.length();
+    const size_t dim = c2dim(str[0]);
+    DIM[0] = dim;
+    IDX[0].LENGTH = tens.size(dim);
+    IDX[0].STRIDE = 1;
+    IDX[0].LDA = tens.stride(dim);
+    NELM = IDX[0].LENGTH;
 
-
-    if (DIM.size() < NDIM) {DIM.resize(NDIM);}
-    if (IDX.size() < NDIM) {IDX.resize(NDIM);}
-
-    NELM = 1; //key for "empty" bundles
-    if (NDIM > 0)
+    for (size_t idx=1;idx<NDIM;idx++)
     {
-      const size_t d = c2dim(str[0]);
-      DIM[0] = d;
-      IDX[0].LENGTH = tens.size(d); 
-      IDX[0].STRIDE = 1;
-      IDX[0].LDA = tens.stride(d);
-      NELM *= IDX[0].LENGTH;
-
-      for (size_t idx=1;idx<NDIM;idx++)
-      {
-        const size_t dim = c2dim(str[idx]);
-        DIM[idx] = dim;
-        IDX[idx].LENGTH = tens.size(dim); 
-        IDX[idx].STRIDE = IDX[idx-1].STRIDE * IDX[idx-1].LENGTH;
-        IDX[idx].LDA = tens.stride(dim);
-        NELM *= IDX[idx].LENGTH;
-      }
+      const size_t dd = c2dim(str[idx]);
+      DIM[idx] = dd;
+      IDX[idx].LENGTH = tens.size(dd);
+      IDX[idx].STRIDE = IDX[idx-1].STRIDE*IDX[idx-1].LENGTH;
+      IDX[idx].LDA = tens.stride(dd);
+      NELM *= IDX[idx].LENGTH; 
     }
   }
 
   //return a new index bundle as a block of the current index bundle
   //  starting at bundled index I and going to bundled index I+(MIN:MAX - I,LEN)
-  index_bundle block(const size_t I, const size_t LEN) const
+  index_bundle2 block(const size_t I, const size_t LEN) const
   {
-    index_bundle block;
-    block.NDIM = NDIM;
+    index_bundle2<T,NDIM> block;
     block.START = I; //here is the big trick
     block.NELM = std::min(LEN,NELM - I);
     block.DIM = DIM;
@@ -145,15 +122,6 @@ struct index_bundle
       off += IDX[dim].LDA*get_index(I,dim); 
     }  
     return off;
-  }
-
-  //calculates offsets for a block of numbers
-  void offset_block(const size_t N, const size_t* I, size_t* off)
-  {
-    for (size_t i=0;i<N;i++)
-    {
-      off[i] = offset(I[i]);
-    }
   }
 
 }; //end class

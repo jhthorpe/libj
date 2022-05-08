@@ -88,20 +88,25 @@ class tensor_matrix
   size_t size() const {return M_LHS.NELM * M_RHS.NELM;} 
   size_t size(const size_t dim) const 
   {
-    if (dim == 0) 
-    {
-      return M_LHS.NELM;
-    } else {
-      return M_RHS.NELM;
-    }
+    return dim == 0? M_LHS.NELM : M_RHS.NELM;
+  }
+  size_t bundle_size(const size_t side)
+  {
+    return side == 0? M_LHS.NDIM : M_RHS.NDIM;
   }
 
   //access functions
   T& operator() (const size_t I, const size_t J);
   const T& operator() (const size_t I, const size_t J) const;
 
-  //offset function
+  //offset functions
   size_t offset(const size_t I, const size_t J) const;
+  void offset_col(const size_t I, const size_t J,
+                  const size_t NI, const size_t rel,
+                  size_t* off) const;
+  void offset_row(const size_t I, const size_t J,
+                  const size_t NJ, const size_t rel,
+                  size_t* off) const;
 
   //data function
   T* data() {return M_BUFFER;}
@@ -112,6 +117,8 @@ class tensor_matrix
                          const size_t NROW, const size_t NCOL);
   const tensor_matrix<T> block(const size_t ROW, const size_t COL, 
                                const size_t NROW, const size_t NCOL) const;
+
+
 
 };//end of class
 
@@ -134,7 +141,7 @@ void tensor_matrix<T>::m_set_default()
 template <typename T>
 tensor_matrix<T>::tensor_matrix()
 {
-  m_set_default();
+  //m_set_default();
 }
 
 //-----------------------------------------------------------------------------------------
@@ -144,7 +151,7 @@ template <typename T>
 tensor_matrix<T>::tensor_matrix(const libj::tensor<T>& tens, const std::string& lhs,
                                 const std::string& rhs)
 {
-  m_set_default();
+//  m_set_default();
   assign(tens,lhs,rhs);
 }
 
@@ -156,6 +163,7 @@ template<typename T>
 void tensor_matrix<T>::m_set_dimensions(const std::string& lhs, 
                                         const std::string& rhs)
 {
+
   //if both lhs and rhs are empty, make lhs and rhs such that this is a col vector
   if (lhs.length() == 0 && rhs.length()==0)
   {
@@ -168,7 +176,6 @@ void tensor_matrix<T>::m_set_dimensions(const std::string& lhs,
     M_LHS.make_bundle<T>(M_TENSOR,new_lhs);
     M_RHS.make_bundle<T>(M_TENSOR,"");
   } else {
-  
     //go through each and make the bundles 
     M_LHS.make_bundle<T>(M_TENSOR,lhs);
     M_RHS.make_bundle<T>(M_TENSOR,rhs);
@@ -291,28 +298,87 @@ const T& tensor_matrix<T>::operator() (const size_t I, const size_t J) const
 template <typename T>
 size_t tensor_matrix<T>::offset(const size_t I, const size_t J) const
 {
-  /*
-  std::vector<size_t> vec(M_LHS.NDIM + M_RHS.NDIM);
-
-  //LHS
-  for (size_t idx = 0; idx < M_LHS.NDIM; idx++)
-  {
-    const size_t dim = M_LHS.DIM[idx];
-    vec[dim] = M_LHS.get_index(I,idx);
-  }
-
-  //RHS
-  for (size_t idx = 0; idx < M_RHS.NDIM; idx++)
-  {
-    const size_t dim = M_RHS.DIM[idx];
-    vec[dim] = M_RHS.get_index(J,idx);
-  }
-
-  return M_TENSOR.offset(vec); 
-  */
   return M_LHS.offset(I) + M_RHS.offset(J);
 
 }
+
+//-----------------------------------------------------------------------------------------
+// offset_col
+// calculates a block of offsets starting with I (LHS)and going to I+NI-1, with a fixed
+//   J(RHS)
+//   
+//   I and J    : the starting rows and cols for the offset
+//   NI         : the number of rows to calculate
+//   rel        : an offset to calculate this relative to
+//   off*       : pointer to offset data
+//-----------------------------------------------------------------------------------------
+template <typename T>
+inline void tensor_matrix<T>::offset_col(const size_t I, const size_t J,
+                                         const size_t NI, const size_t rel,
+                                         size_t* off) const
+{
+  const size_t JOFF = M_RHS.offset(J); 
+  size_t tmp = M_LHS.offset(I+0);
+  for (size_t i=1;i<NI;i++)
+  {
+    tmp += JOFF;
+    off[i-1] = tmp - rel;
+    tmp = M_LHS.offset(I+i);
+  } 
+  tmp += JOFF;
+  off[NI-1] = tmp - rel;
+}
+
+//-----------------------------------------------------------------------------------------
+// offset_row
+// calculates a block of offsets starting with J (RHS)and going to J+NJ-1, with a fixed
+//   I(RHS)
+//-----------------------------------------------------------------------------------------
+template <typename T>
+inline void tensor_matrix<T>::offset_row(const size_t I, const size_t J,
+                                         const size_t NJ, const size_t rel,
+                                         size_t* off) const
+{
+  const size_t IOFF = M_LHS.offset(I); 
+  size_t tmp = M_RHS.offset(J+0);
+  for (size_t j=1;j<NJ;j++)
+  {
+    tmp += IOFF;
+    off[j-1] = tmp - rel;
+    tmp = M_RHS.offset(J+j);
+  } 
+  tmp += IOFF;
+  off[NJ-1] = tmp - rel;
+}
+
+//-----------------------------------------------------------------------------------------
+// offset_block
+// calculates a block of offsets starting with I (LHS),J(RHS) and going to I+NI-1 and J+NJ-1
+//  
+// this is stored as a column major matrix, with J as the cols
+//           J    J+1  ...   J+NJ-1
+//  I        
+//  I+1
+//  ...
+//  I+NI-1	
+//  
+//  This routine is based on the following trick. The ROW contributions are the same for
+//  each COL. Therefor they only need to be computed once, and copied from one col to 
+//  another. Similarly, each set of rows only needs to be added by a single 
+//  value of J offset. 
+//  
+//-----------------------------------------------------------------------------------------
+/*
+template <typename T>
+void tensor_matrix<T>::offset_block(const size_t I, const size_t J,
+                                    const size_t NI, const size_t NJ,
+                                    size_t* off) const
+{
+  printf("ERROR tensor_matrix::offset_block \n") ;
+  printf("JHT really needs to code this \n");
+  exit(1);
+}
+*/
 
 //-----------------------------------------------------------------------------------------
 // block 

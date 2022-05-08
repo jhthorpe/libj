@@ -4,6 +4,8 @@ inc     := $(incdir)/jblis.hpp
 lib     := $(libdir)/jblis.a
 levels  := level1
 objects := level1/*.o
+deps    := $(incdir)/cache.hpp $(incdir)/tensor.hpp $(incdir)/tensor_matrix.hpp \
+			$(incdir)/block_scatter_matrix.hpp
 
 
 all : $(inc) 
@@ -12,6 +14,14 @@ all : $(inc)
 		$(MAKE) -C $$i all; \
 	done
 	$(MAKE) $(lib)
+
+#----------------------------------------
+# dependencies
+$(incdir)/cache.hpp : 
+	$(MAKE) -C ../cache all
+
+$(incdir)/tensor.hpp $(incdir)/tensor_matrix.hpp $(incdir)/block_scatter_matrix.hpp:
+	$(MAKE) -C ../tensor all
 
 #----------------------------------------
 # incs
