@@ -1,54 +1,19 @@
+#include "tensor.hpp"
+#include "jblis.hpp"
+#include "zero2.hpp"
+#include "tensor.hpp"
+#include "block_scatter_matrix2.hpp"
+#include "tensor_matrix.hpp"
 #include <stdio.h>
-#include "para.hpp"
-#include <mpi.h>
 
 int main()
 {
-  int stat;
-  Pworld pworld; //general info
-  pworld.init();
-
-  //Pprint always sees the WORLD
-  Pprint pprint; //print buffers
-  pprint.init(pworld);
-
-  Pfile  pfile;
-  pfile.init(pworld);
-
-  pfile.recover(pworld);
-
-  pfile.info(pworld,pprint);
-  pprint.print_all(pworld);
-  pprint.reset();
-
-  const int fid = pprint.get_fid(pworld,"ff");
-
-  if (pworld.mpi_doesIO)
+  libj::tensor<double> A(1000000);
+ 
+  for (size_t i=0;i<A.size();i++)
   {
-    int arr[10];
-    for (int i=0;i<10;i++)
-    {
-      arr[i] = pworld.mpi_world_task_id + i;
-    }
-    pfile.write(fid,0,arr,sizeof(int),10);
-
-    for (int i=0;i<10;i++)
-    {
-      pfile.read(fid,0,arr,sizeof(int),10); 
-    }
-  
-    pprint.add("task #%d arr has : ",pworld.mpi_world_task_id);
-    for (int i=0;i<10;i++)
-    {
-      pprint.add("%d ",arr[i]);
-    }
+    A[i] = (double) 0;
   }
-  pprint.addstore("\n");
-  pprint.print_all(pworld);
-  pprint.reset();
 
-  pprint.destroy(pworld); //destroy the print buffers
-  pworld.destroy(); //this must always be called last
-  return 0;
+  return A(0);
 }
-
