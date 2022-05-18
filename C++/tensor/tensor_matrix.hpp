@@ -1,6 +1,7 @@
 /*----------------------------------------------------------------------------
   tensor_matrix.hpp
 	JHT, April 25, 2022 : created
+	JHT, May 18, 2022   : changed to array template
 
   .hpp file for the tensor_matrix class, which is used to "matrixicize" 
   a tensor. This is purely used to represent an underlying tensor, and
@@ -40,8 +41,8 @@
 				for bundled indicies
 
 ----------------------------------------------------------------------------*/
-#ifndef TENSOR_MATRIX_HPP
-#define TENSOR_MATRIX_HPP
+#ifndef LIBJ_TENSOR_MATRIX_HPP
+#define LIBJ_TENSOR_MATRIX_HPP
 
 #include "tensor.hpp"
 #include "index_bundle.hpp"
@@ -57,16 +58,15 @@ namespace libj
 //------------------------------------------------------------------------
 // tensor_matrix class
 //------------------------------------------------------------------------
-template <typename T>
+template <typename T, size_t NLHS, size_t NRHS>
 class tensor_matrix
 {
   private:
   //data
-  T*                   M_BUFFER;     //pointer to base data, offset in case of block
-  libj::tensor<T>      M_TENSOR;     //pointer to tensor this represents
-  libj::index_bundle   M_LHS;	     //left hand side index bundles
-  libj::index_bundle   M_RHS;        //right hand size index bundles
-  std::vector<size_t>  M_DUMMY;	     //dummy vector for access to M_TENSOR 
+  T*                          M_BUFFER;     //pointer to base data, offset in case of block
+  libj::tensor<T>             M_TENSOR;     //pointer to tensor this represents
+  libj::index_bundle<NLHS>    M_LHS;	     //left hand side index bundles
+  libj::index_bundle<NRHS>    M_RHS;        //right hand size index bundles
 
   //Internal functions
   void m_set_default(); //set the default values
@@ -78,11 +78,14 @@ class tensor_matrix
   tensor_matrix();
 
   //Copy constructor from tensor
-  tensor_matrix(const libj::tensor<T>& tens, const std::string& lhs, const std::string& rhs);
+  tensor_matrix(const libj::tensor<T>& tens, 
+                 const std::string& lhs, const std::string& rhs);
 
   //Assignment
-  void assign(libj::tensor<T>& tens, const std::string& lhs, const std::string& rhs);
-  void assign(const libj::tensor<T>& tens, const std::string& lhs, const std::string& rhs);
+  void assign(libj::tensor<T>& tens, 
+              const std::string& lhs, const std::string& rhs);
+  void assign(const libj::tensor<T>& tens, 
+              const std::string& lhs, const std::string& rhs);
 
   //getters
   size_t size() const {return M_LHS.NELM * M_RHS.NELM;} 
@@ -93,6 +96,11 @@ class tensor_matrix
   size_t bundle_size(const size_t side)
   {
     return side == 0? M_LHS.NDIM : M_RHS.NDIM;
+  }
+
+  constexpr size_t dim() const {return NLHS*NRHS;}
+  constexpr size_t dim(const size_t side) const {
+    return side == 0 ? NLHS : NRHS;
   }
 
   //access functions
@@ -113,43 +121,43 @@ class tensor_matrix
   const T* data() const {return M_BUFFER;} 
 
   //block function
-  tensor_matrix<T> block(const size_t ROW, const size_t COL, 
-                         const size_t NROW, const size_t NCOL);
-  const tensor_matrix<T> block(const size_t ROW, const size_t COL, 
-                               const size_t NROW, const size_t NCOL) const;
-
-
+  tensor_matrix<T,NLHS,NRHS> block(const size_t ROW, const size_t COL, 
+                                    const size_t NROW, const size_t NCOL);
+  const tensor_matrix<T,NLHS,NRHS> block(const size_t ROW, 
+                                          const size_t COL, 
+                                          const size_t NROW, 
+                                          const size_t NCOL) const;
 
 };//end of class
 
 //-----------------------------------------------------------------------------------------
 // set default values
 //-----------------------------------------------------------------------------------------
-template<typename T>
-void tensor_matrix<T>::m_set_default()
+template<typename T, size_t NLHS, size_t NRHS>
+void tensor_matrix<T,NLHS,NRHS>::m_set_default()
 {
   //don't set the tensor yet
-  M_LHS.clear();
-  M_RHS.clear();
-  M_DUMMY.clear();
-  M_BUFFER = NULL;
+//  M_BUFFER = NULL;
 }
 
 //-----------------------------------------------------------------------------------------
 // empty constructor 
 //-----------------------------------------------------------------------------------------
-template <typename T>
-tensor_matrix<T>::tensor_matrix()
+/*
+template <typename T, size_t NLHS, size_t NRHS>
+tensor_matrix<T,NLHS,NRHS>::tensor_matrix()
 {
   //m_set_default();
 }
+*/
 
 //-----------------------------------------------------------------------------------------
 // copy constructor 
 //-----------------------------------------------------------------------------------------
-template <typename T>
-tensor_matrix<T>::tensor_matrix(const libj::tensor<T>& tens, const std::string& lhs,
-                                const std::string& rhs)
+template <typename T,size_t NLHS, size_t NRHS>
+tensor_matrix<T,NLHS,NRHS>::tensor_matrix(const libj::tensor<T>& tens, 
+                                            const std::string& lhs,
+                                            const std::string& rhs)
 {
 //  m_set_default();
   assign(tens,lhs,rhs);
@@ -159,9 +167,9 @@ tensor_matrix<T>::tensor_matrix(const libj::tensor<T>& tens, const std::string& 
 // m_set_dimensions
 //	sets the bundles and dimensions of the tensor_matrix
 //-----------------------------------------------------------------------------------------
-template<typename T>
-void tensor_matrix<T>::m_set_dimensions(const std::string& lhs, 
-                                        const std::string& rhs)
+template<typename T, size_t NLHS, size_t NRHS>
+void tensor_matrix<T,NLHS,NRHS>::m_set_dimensions(const std::string& lhs, 
+                                                   const std::string& rhs)
 {
 
   //if both lhs and rhs are empty, make lhs and rhs such that this is a col vector
@@ -173,12 +181,16 @@ void tensor_matrix<T>::m_set_dimensions(const std::string& lhs,
     {
       new_lhs.push_back((char)((int) 'a' + (int)i));
     }
-    M_LHS.make_bundle<T>(M_TENSOR,new_lhs);
-    M_RHS.make_bundle<T>(M_TENSOR,"");
+//    M_LHS.make_bundle<T>(M_TENSOR,new_lhs);
+//    M_RHS.make_bundle<T>(M_TENSOR,"");
+    M_LHS.make_bundle(M_TENSOR,new_lhs);
+    M_RHS.make_bundle(M_TENSOR,"");
   } else {
     //go through each and make the bundles 
-    M_LHS.make_bundle<T>(M_TENSOR,lhs);
-    M_RHS.make_bundle<T>(M_TENSOR,rhs);
+//    M_LHS.make_bundle<T>(M_TENSOR,lhs);
+//    M_RHS.make_bundle<T>(M_TENSOR,rhs);
+    M_LHS.make_bundle(M_TENSOR,lhs);
+    M_RHS.make_bundle(M_TENSOR,rhs);
   }
 
   //check if the bundles were good
@@ -191,24 +203,23 @@ void tensor_matrix<T>::m_set_dimensions(const std::string& lhs,
     exit(1);
   }
 
-  M_DUMMY.resize(M_TENSOR.dim());
 }
 
 //-----------------------------------------------------------------------------------------
 // m_check_bundles
 //-----------------------------------------------------------------------------------------
-template <typename T>
-bool tensor_matrix<T>::m_good_bundles()
+template <typename T, size_t NLHS, size_t NRHS>
+bool tensor_matrix<T,NLHS,NRHS>::m_good_bundles()
 {
   //check that the number of dimensions in each sums to tensor dimensions
-  if (M_LHS.NDIM + M_RHS.NDIM != M_TENSOR.dim()) {return false;}
+  if (M_LHS.dim() + M_RHS.dim() != M_TENSOR.dim()) {return false;}
 
   //check that each dimension only appears once
-  const size_t TOT = M_LHS.NDIM + M_RHS.NDIM;
-  std::vector<size_t> COUNT(TOT);
+  constexpr size_t TOT = NLHS+NRHS; 
+  std::array<size_t,TOT> COUNT;
   for (size_t dim = 0; dim < TOT ; dim++) {COUNT[dim] = 0;} 
-  for (size_t idx = 0; idx < M_LHS.NDIM; idx++) {COUNT.at(M_LHS.DIM[idx])++;}
-  for (size_t idx = 0; idx < M_RHS.NDIM; idx++) {COUNT.at(M_RHS.DIM[idx])++;}
+  for (size_t idx = 0; idx < M_LHS.dim(); idx++) {COUNT.at(M_LHS.DIM[idx])++;}
+  for (size_t idx = 0; idx < M_RHS.dim(); idx++) {COUNT.at(M_RHS.DIM[idx])++;}
   for (size_t dim = 0; dim < TOT; dim++) {if (COUNT[dim] != 1) {return false;}}
   return true;
 }
@@ -217,9 +228,10 @@ bool tensor_matrix<T>::m_good_bundles()
 //-----------------------------------------------------------------------------------------
 // Assigment 
 //-----------------------------------------------------------------------------------------
-template<typename T>
-void tensor_matrix<T>::assign(libj::tensor<T>& tens, 
-                             const std::string& lhs, const std::string& rhs)
+template<typename T, size_t NLHS, size_t NRHS>
+void tensor_matrix<T,NLHS,NRHS>::assign(libj::tensor<T>& tens, 
+                                         const std::string& lhs, 
+                                         const std::string& rhs)
 {
   //reset default values (incase the tensor_matrix is already set)
   m_set_default();
@@ -232,9 +244,10 @@ void tensor_matrix<T>::assign(libj::tensor<T>& tens,
   m_set_dimensions(lhs,rhs);
 }
 
-template<typename T>
-void tensor_matrix<T>::assign(const libj::tensor<T>& tens, 
-                              const std::string& lhs, const std::string& rhs)
+template<typename T, size_t NLHS, size_t NRHS>
+void tensor_matrix<T,NLHS,NRHS>::assign(const libj::tensor<T>& tens, 
+                                         const std::string& lhs, 
+                                         const std::string& rhs)
 {
   //reset default values (incase the tensor_matrix is already set)
   m_set_default();
@@ -250,39 +263,43 @@ void tensor_matrix<T>::assign(const libj::tensor<T>& tens,
 //-----------------------------------------------------------------------------------------
 // Access operators
 //-----------------------------------------------------------------------------------------
-template <typename T>
-T& tensor_matrix<T>::operator() (const size_t I, const size_t J)
+template <typename T, size_t NLHS, size_t NRHS>
+T& tensor_matrix<T,NLHS,NRHS>::operator() (const size_t I, const size_t J)
 {
+  //dummy array 
+  std::vector<size_t> DUMMY(M_LHS.NDIM + M_RHS.NDIM); 
+
   //LHS
   for (size_t idx = 0; idx < M_LHS.NDIM; idx++)
   {
     const size_t dim = M_LHS.DIM[idx];
-    M_DUMMY[dim] = M_LHS.get_index(I,idx);
+    DUMMY[dim] = M_LHS.get_index(I,idx);
   }
 
   //RHS
   for (size_t idx = 0; idx < M_RHS.NDIM; idx++)
   {
     const size_t dim = M_RHS.DIM[idx];
-    M_DUMMY[dim] = M_RHS.get_index(J,idx);
+    DUMMY[dim] = M_RHS.get_index(J,idx);
   }
  
-  return M_TENSOR(M_DUMMY);
+  return M_TENSOR(DUMMY);
 }
 
-template <typename T>
-const T& tensor_matrix<T>::operator() (const size_t I, const size_t J) const
+template <typename T, size_t NLHS, size_t NRHS>
+const T& tensor_matrix<T,NLHS,NRHS>::operator() (const size_t I, 
+                                                  const size_t J) const
 {
-  std::vector<size_t> vec(M_LHS.NDIM + M_RHS.NDIM);
+  std::vector<size_t> vec(M_LHS.dim() + M_RHS.dim());
   //LHS
-  for (size_t idx = 0; idx < M_LHS.NDIM; idx++)
+  for (size_t idx = 0; idx < M_LHS.dim(); idx++)
   {
     const size_t dim = M_LHS.DIM[idx];
     vec[dim] = M_LHS.get_index(I,idx);
   }
 
   //RHS
-  for (size_t idx = 0; idx < M_RHS.NDIM; idx++)
+  for (size_t idx = 0; idx < M_RHS.dim(); idx++)
   {
     const size_t dim = M_RHS.DIM[idx];
     vec[dim] = M_RHS.get_index(J,idx);
@@ -295,11 +312,11 @@ const T& tensor_matrix<T>::operator() (const size_t I, const size_t J) const
 // offset
 //	returns offset for bundle indices in the original matrix
 //-----------------------------------------------------------------------------------------
-template <typename T>
-size_t tensor_matrix<T>::offset(const size_t I, const size_t J) const
+template <typename T, size_t NLHS, size_t NRHS>
+size_t tensor_matrix<T,NLHS,NRHS>::offset(const size_t I, 
+                                           const size_t J) const
 {
   return M_LHS.offset(I) + M_RHS.offset(J);
-
 }
 
 //-----------------------------------------------------------------------------------------
@@ -312,10 +329,12 @@ size_t tensor_matrix<T>::offset(const size_t I, const size_t J) const
 //   rel        : an offset to calculate this relative to
 //   off*       : pointer to offset data
 //-----------------------------------------------------------------------------------------
-template <typename T>
-inline void tensor_matrix<T>::offset_col(const size_t I, const size_t J,
-                                         const size_t NI, const size_t rel,
-                                         size_t* off) const
+template <typename T, size_t NLHS, size_t NRHS>
+inline void tensor_matrix<T,NLHS,NRHS>::offset_col(const size_t I, 
+                                                    const size_t J,
+                                                    const size_t NI, 
+                                                    const size_t rel,
+                                                    size_t* off) const
 {
   const size_t JOFF = M_RHS.offset(J); 
   size_t tmp = M_LHS.offset(I+0);
@@ -334,10 +353,12 @@ inline void tensor_matrix<T>::offset_col(const size_t I, const size_t J,
 // calculates a block of offsets starting with J (RHS)and going to J+NJ-1, with a fixed
 //   I(RHS)
 //-----------------------------------------------------------------------------------------
-template <typename T>
-inline void tensor_matrix<T>::offset_row(const size_t I, const size_t J,
-                                         const size_t NJ, const size_t rel,
-                                         size_t* off) const
+template <typename T, size_t NLHS, size_t NRHS>
+inline void tensor_matrix<T,NLHS,NRHS>::offset_row(const size_t I, 
+                                                    const size_t J,
+                                                    const size_t NJ, 
+                                                    const size_t rel,
+                                                    size_t* off) const
 {
   const size_t IOFF = M_LHS.offset(I); 
   size_t tmp = M_RHS.offset(J+0);
@@ -385,28 +406,24 @@ void tensor_matrix<T>::offset_block(const size_t I, const size_t J,
 //	Note that this block really comes down to altering the index bundles, as they track
 //	the actual block position within the original tensor
 //-----------------------------------------------------------------------------------------
-template <typename T>
-tensor_matrix<T> tensor_matrix<T>::block(const size_t ROW, const size_t COL,
-                                         const size_t NROW, const size_t NCOL)
+template <typename T, size_t NLHS, size_t NRHS>
+tensor_matrix<T,NLHS,NRHS> tensor_matrix<T,NLHS,NRHS>::block(const size_t ROW, const size_t COL,const size_t NROW, const size_t NCOL)
 {
-  tensor_matrix<T> TENS;
+  tensor_matrix<T,NLHS,NRHS> TENS;
   TENS.M_TENSOR = M_TENSOR; //same source tensor
   TENS.M_LHS = M_LHS.block(ROW,NROW); //LHS bundles change
   TENS.M_RHS = M_RHS.block(COL,NCOL); //RHS bundles change
-  TENS.M_DUMMY.resize(M_LHS.NDIM + M_RHS.NDIM);
   TENS.M_BUFFER = &(*this)(ROW,COL); 
   return TENS; 
 }
 
-template <typename T>
-const tensor_matrix<T> tensor_matrix<T>::block(const size_t ROW, const size_t COL,
-                                               const size_t NROW, const size_t NCOL) const
+template <typename T, size_t NLHS, size_t NRHS>
+const tensor_matrix<T,NLHS,NRHS> tensor_matrix<T,NLHS,NRHS>::block(const size_t ROW, const size_t COL, const size_t NROW, const size_t NCOL) const
 {
-  tensor_matrix<T> TENS;
+  tensor_matrix<T,NLHS,NRHS> TENS;
   TENS.M_TENSOR = M_TENSOR; //same source tensor
   TENS.M_LHS = M_LHS.block(ROW,NROW); //LHS bundles change
   TENS.M_RHS = M_RHS.block(COL,NCOL); //RHS bundles change
-  TENS.M_DUMMY.resize(M_LHS.NDIM + M_RHS.NDIM);
   TENS.M_BUFFER = &(*this)(ROW,COL); 
   return TENS; 
 }

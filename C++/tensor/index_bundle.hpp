@@ -9,9 +9,10 @@
   bunde.offset(index);  //returns the offset of this element in the original tensor
 ---------------------------------------------------------------------------------------*/
 
-#ifndef INDEX_BUNDLE_HPP
-#define INDEX_BUNDLE_HPP
+#ifndef INDEX_BUNDLE2_HPP
+#define INDEX_BUNDLE2_HPP
 
+#include <array>
 #include <vector>
 #include <string>
 #include <algorithm> 
@@ -22,7 +23,7 @@ namespace libj
 //------------------------------------------------------------------------
 // index struct 
 //------------------------------------------------------------------------
-struct index
+struct index2
 {
   size_t LENGTH;
   size_t STRIDE;
@@ -31,24 +32,23 @@ struct index
 //------------------------------------------------------------------------
 // index bundle class
 //------------------------------------------------------------------------
+template <size_t NDIM>
 struct index_bundle
 {
-  size_t              NDIM;   //number of dimensions in bundle
-  size_t              NELM;   //number of elements
-  size_t              START;  //starting index (for blocking)
-  std::vector<size_t> DIM;    //dimension list that maps between bundle and original
-  std::vector<index>  IDX;    //vector of structs to help with locality  
+  size_t                  NELM;   //number of elements
+  size_t                  START;  //starting index (for blocking)
+  std::array<size_t,NDIM> DIM;    //dimension list that maps between bundle and original
+  std::array<index2,NDIM>  IDX;    //vector of structs to help with locality  
 
-  //initialize the bundle to nothing
+  //blank constructor
   index_bundle()
   {
     clear();
-  }
+  };
 
   //copy constructor
-  index_bundle(const index_bundle& other)
+  index_bundle(const index_bundle<NDIM>& other)
   {
-    NDIM = other.NDIM;
     NELM = other.NELM;
     START = other.START;
     DIM = other.DIM;
@@ -56,25 +56,32 @@ struct index_bundle
   }
 
   //copy assignment
-  index_bundle& operator= (const index_bundle& other)
+  index_bundle& operator= (const index_bundle<NDIM>& other)
   {
-    NDIM = other.NDIM;
     NELM = other.NELM;
     START = other.START;
-    if (DIM.size() < NDIM) {DIM.resize(NDIM);}
-    if (IDX.size() < NDIM) {DIM.resize(NDIM);}
     DIM = other.DIM;
     IDX = other.IDX;
     return *this;
   }
 
+  //assignment from tensor
+  template<typename T>
+  index_bundle(const libj::tensor<T>& tens, 
+                const std::string& str)
+  {
+    make_bundle<T>(tens,str);
+  } 
+
   //clear the data in the bundle
   void clear()
   {
-    NDIM = 0;
     NELM = 0;
     START = 0;
   }
+
+  constexpr size_t dim() const {return NDIM;}
+  size_t dim(const size_t idx) const {return DIM[idx];}
 
   size_t size() const {return NELM;}
 
@@ -94,12 +101,6 @@ struct index_bundle
   template<typename T>
   void make_bundle(const libj::tensor<T>& tens, const std::string& str)
   {
-    NDIM = str.length();
-
-
-    if (DIM.size() < NDIM) {DIM.resize(NDIM);}
-    if (IDX.size() < NDIM) {IDX.resize(NDIM);}
-
     NELM = 1; //key for "empty" bundles
     if (NDIM > 0)
     {
@@ -127,7 +128,6 @@ struct index_bundle
   index_bundle block(const size_t I, const size_t LEN) const
   {
     index_bundle block;
-    block.NDIM = NDIM;
     block.START = I; //here is the big trick
     block.NELM = std::min(LEN,NELM - I);
     block.DIM = DIM;
@@ -135,6 +135,7 @@ struct index_bundle
     return block;
   }
 
+  // ***Turn this into a variadic template***
   //returns the offset of an index of this particular bundle in the 
   //  original tensor
   size_t offset(const size_t I) const
@@ -145,15 +146,6 @@ struct index_bundle
       off += IDX[dim].LDA*get_index(I,dim); 
     }  
     return off;
-  }
-
-  //calculates offsets for a block of numbers
-  void offset_block(const size_t N, const size_t* I, size_t* off)
-  {
-    for (size_t i=0;i<N;i++)
-    {
-      off[i] = offset(I[i]);
-    }
   }
 
 }; //end class

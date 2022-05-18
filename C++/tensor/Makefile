@@ -1,6 +1,6 @@
 include ../make.config
 
-incs := $(incdir)/tensor.hpp $(incdir)/alignment.hpp $(incdir)/tensor_matrix.hpp $(incdir)/index_bundle.hpp $(incdir)/scatter_matrix.hpp $(incdir)/block_scatter_matrix.hpp $(incdir)/index_bundle2.hpp 
+incs := $(incdir)/tensor.hpp $(incdir)/alignment.hpp $(incdir)/tensor_matrix.hpp $(incdir)/index_bundle.hpp $(incdir)/scatter_matrix.hpp $(incdir)/block_scatter_matrix.hpp 
 
 all : $(incs) 
 
@@ -25,5 +25,6 @@ $(incdir)/block_scatter_matrix.hpp : block_scatter_matrix.hpp
 $(incdir)/index_bundle2.hpp : index_bundle2.hpp
 	cp index_bundle2.hpp $(incdir)
 
+.PHONY : clean
 clean :
 	-rm $(incs)  
